@@ -18,6 +18,8 @@
   <a href="docs/CHANGELOG.md">Changelog</a>
 </p>
 
+<p align="center"><img src="docs/demo.gif" alt="merman drawing a table, a flowchart and a bar chart in Claude Code, then switching to the dracula and nord themes" width="900"></p>
+
 ## TL;DR
 
 - merman is a Claude Code mod: a plugin of TypeScript hooks that redraws what Claude Code shows on screen. It is not a tool or MCP server, and Claude never calls it.
