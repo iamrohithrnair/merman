@@ -1,4 +1,5 @@
-import { expect, test } from 'claude-code/testing'
+import { expect, test as plainTest } from 'claude-code/testing'
+import { test } from './tool-rows'
 
 import { parse } from '../hooks/markdown'
 import { PRESETS } from '../hooks/presets'
@@ -160,6 +161,26 @@ test('toolRows off leaves tool rows to the engine', { options: { toolRows: false
   expect((await ui.find({ type: 'Text', text: /^engine$/ }))).toBeDefined()
   await ui.unmount()
 })
+
+for (const surface of ['terminal', 'desktop'] as const) {
+  plainTest(`with default options tool rows, groups and results are Claude Code's own (${surface})`, async ($, on) => {
+    on('ui.render', ($, e) => {
+      const { Text } = $.ui.resolve(e)
+      return <Text>engine</Text>
+    })
+    const calls = [{ tool_use_id: 'default-seq', tool: 'Bash', input: { command: 'seq 1 40' }, isRunning: false, isErrored: false, isInterrupted: false }]
+    const group = await $.ui.mount({ plugin: 'merman', surface, component: 'ToolGroup', props: { calls, isActive: false, isExpanded: false } })
+    expect(await group.find({ type: 'Text', text: /^engine$/ })).toBeDefined()
+    expect(await group.find({ text: /Ran 1 command/ })).toBeUndefined()
+    await group.unmount()
+    const row = await $.ui.mount({ ...toolRow('Bash', { command: 'ls' }), surface })
+    expect(await row.find({ type: 'Text', text: /^engine$/ })).toBeDefined()
+    await row.unmount()
+    const write = await $.ui.mount({ plugin: 'merman', surface, component: 'ToolResult', props: { tool_use_id: 'default-write', tool: 'Write', isErrored: false, output: { type: 'create', filePath: '/tmp/a.txt', content: 'one\ntwo\n', structuredPatch: [], originalFile: null } } })
+    expect(await write.find({ type: 'Text', text: /^engine$/ })).toBeDefined()
+    await write.unmount()
+  })
+}
 
 test('rgb() and ansi256() colors reach the drawing', { options: { tableHeaderColor: 'rgb(255,204,0)', numberColor: 'ansi256(114)' } }, async $ => {
   const ui = await $.ui.mount({ ...draw(TABLE), surface: 'terminal' })

@@ -92,7 +92,7 @@
     "toolStyle": {
       "type": "string",
       "title": "Tool row style",
-      "description": "How tool rows (Ran, Read, Edited) sit next to Claude's sentences. chat: tool rows dimmed on the right, Claude on the left. tree-dim: tucked under the sentence with ⎿ and dimmed. tree-bold: tree-dim plus one-line sentences in bold. classic: the original look.",
+      "description": "How tool rows (Ran, Read, Edited) sit next to Claude's sentences. chat: tool rows dimmed on the right, Claude on the left. tree-dim: tucked under the sentence with ⎿ and dimmed. tree-bold: tree-dim plus one-line sentences in bold. classic: the original look. Needs toolRows on.",
       "default": "chat",
       "options": ["chat", "tree-dim", "tree-bold", "classic"]
     },
@@ -242,8 +242,8 @@
     "toolRows": {
       "type": "boolean",
       "title": "Tool rows",
-      "description": "Draw tool calls as one compact line: Ran gh pr view 12, Read ~/src/app.ts, Edited README.md. Results still draw below as usual.",
-      "default": true
+      "description": "Draw tool calls as one compact line: Ran gh pr view 12, Read ~/src/app.ts, Edited README.md, with merman's diff cards. Off leaves tool rows and their results to Claude Code; Tool row style, Tool output and Diff style apply only when on.",
+      "default": false
     },
     "emphasisColor": {
       "type": "string",
@@ -290,7 +290,7 @@
     "diffStyle": {
       "type": "string",
       "title": "Diff style",
-      "description": "How edit and shell edit diffs draw. card: a rounded box with tinted lines. full: no box, each changed line tinted across the width. marks: no box and no tint, only the +/- marks in the theme's diff colors. bar: no box and no tint, a colored ▌ before each changed line. Every style highlights the code and marks the changed words.",
+      "description": "How edit and shell edit diffs draw. card: a rounded box with tinted lines. full: no box, each changed line tinted across the width. marks: no box and no tint, only the +/- marks in the theme's diff colors. bar: no box and no tint, a colored ▌ before each changed line. Every style highlights the code and marks the changed words. Needs toolRows on.",
       "default": "card",
       "options": ["card", "full", "marks", "bar"]
     },

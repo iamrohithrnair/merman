@@ -1,5 +1,6 @@
 import type { On, RenderElement } from 'claude-code'
-import { expect, mock, test } from 'claude-code/testing'
+import { expect, mock } from 'claude-code/testing'
+import { test } from './tool-rows'
 
 import { drawnOnce, drawnPlain, keptDrawing, memoized, reusedDrawing, textOf, unfoldedDrawing } from '../hooks/drawings'
 import { keepFormulas } from '../hooks/latex'

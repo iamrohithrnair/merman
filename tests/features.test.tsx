@@ -1,5 +1,6 @@
 import type { On } from 'claude-code'
-import { expect, mock, test } from 'claude-code/testing'
+import { expect, mock } from 'claude-code/testing'
+import { test } from './tool-rows'
 import type { TestBody } from 'claude-code/testing'
 
 import { clockText, sentAt } from '../hooks/clock'

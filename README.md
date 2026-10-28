@@ -23,7 +23,7 @@
 ## TL;DR
 
 - merman is a Claude Code mod: a plugin of TypeScript hooks that redraws what Claude Code shows on screen. It is not a tool or MCP server, and Claude never calls it.
-- Claude Code prints mermaid as source and tool calls as walls of text. merman draws them: real charts and flowcharts, typeset LaTeX math in kitty and Ghostty, colored tables and code, and quiet tool rows.
+- Claude Code prints mermaid as source and tool calls as walls of text. merman draws them: real charts and flowcharts, typeset LaTeX math in kitty and Ghostty, colored tables and code, and, if you opt in, quiet tool rows.
 - 16 palettes plus `mono`, and copy buttons on everything.
 - Clone and link to install, `/plugin` to turn it off. Claude Code's own renderer comes back the moment you do.
 - No network calls. It runs a program only when you click `⧉ html` or `▣ png` (the clipboard helper) or turn on LaTeX (RaTeX's renderer).
@@ -124,7 +124,7 @@ Measured with `npm --prefix scripts run bench` (200 runs, Node 24, Apple M4 Pro)
 | [LaTeX math](#latex-math) | `$$` and ` ```math ` formulas typeset as images in kitty and Ghostty by [RaTeX](https://github.com/erweixin/RaTeX), text everywhere else |
 | [Layout](#layout) | back-to-back tables and diagrams sit side by side and wrap on narrow terminals |
 | [Copy buttons](#copy-buttons) | `⧉ md`, `⧉ art`, `⧉ html` and `▣ png` on tables, `[ ⧉ copy ]` on code, lists and quotes, `/merman copy` without a mouse |
-| [Tool rows](#tool-rows) | `Ran gh pr view 12`, `Read ~/src/app.ts`, groups summed up as `Ran 3 commands, read 2 files`, with status dots; `toolOutput: quiet` hides what Claude only read and says in plain words what each call did |
+| [Tool rows](#tool-rows) | Opt-in with `toolRows: true`: `Ran gh pr view 12`, `Read ~/src/app.ts`, groups summed up as `Ran 3 commands, read 2 files`, with status dots; `toolOutput: quiet` hides what Claude only read and says in plain words what each call did |
 | [Slash commands](#slash-commands) | command output (`/cost`, `/context`, plugin commands) gets the same tables and code styling |
 | [Diagram hints](#diagram-hints) | a short model-only note, once per conversation, so Claude reaches for diagrams, charts and figures when they help, and builds explaining replies around the pictures |
 | [Text](#text) | bold, italic, strikethrough, inline code, links, versions, durations, percentages and clickable paths in their own colors |
@@ -241,6 +241,8 @@ Clicking works where the terminal passes clicks through, as fullscreen mode does
 
 ### Tool rows
 
+Tool rows are opt-in: by default Claude Code draws tool calls and their results itself. Set `toolRows: true` to have merman draw them as below; `toolStyle`, `toolOutput` and `diffStyle` apply only then.
+
 Each tool call draws as one line: a verb and its target, `Ran` with a colored shell command, `Read` and `Edited` with the path, which opens the file on click like a path in a reply (see [Text](#text)). A status dot shows done, running or failed, and output still draws below. Edits draw as a diff card in the theme's colors, and so do files a shell command changed (`sed -i`, a script), one card per file headed by its path. A file Write creates is no diff, as in Claude Code's own preview: `Created <path> (N lines)` heads its first 10 lines as numbered code in the theme's colors, and a click anywhere on it, title or lines, or on `+N more lines` opens the rest; `show less` or another click folds it again. A diff card or a new file's preview with lines folded away opens the same way. A file an Edit or a shell command creates shows its first 10 lines as added diff lines under the same header. A file a shell command deletes is one `Deleted <path> (N lines)` line, and a click on it opens its removed lines. A file moved unchanged is one `Renamed <old> → <new>` line. Before Claude Code 2.1.295, files Write creates keep Claude Code's own preview, a new file's lines open with a `+N more lines` button and a deleted file's with a `show N lines` button. In the desktop app a click on the code lines does nothing; the `+N more lines` button does it. In diff cards added and unchanged lines are highlighted in the file's language, removed lines stay plain as in Claude Code, and when a line is edited rather than rewritten, the words that changed get a deeper tint. `diffStyle` picks the look: `card` (default) frames the lines in a rounded box, `full` drops the box and tints each changed line across the width, `marks` drops the tint and colors only the `+` and `−` marks, and `bar` puts a colored `▌` before each changed line.
 
 | `card` (default) | `full` | `marks` | `bar` |
@@ -343,7 +345,7 @@ Options sit under `options`, keyed by the plugin's id, `merman@skills-dir`. Proj
 | `headingStyle` | `banner`, `bold`, `underline`, `uppercase` | `banner` |
 | `highlightNumbers` | `true`, `false` | `true` |
 | `highlightPaths` | `true`, `false` | `true` |
-| `toolRows` | `true`, `false` | `true` |
+| `toolRows` | `true`, `false` | `false` |
 | `toolStyle` | `chat`, `tree-dim`, `tree-bold`, `classic` | `chat` |
 | `toolOutput` | `full`, `quiet` | `full` |
 | `copyButtons` | `true`, `false` | `true` |
@@ -404,7 +406,7 @@ A color is hex (`#a6e3a1`, `#fc0`), `rgb(166,227,161)`, `ansi256(114)` or a name
 
 To change the code, read [AGENTS.md](AGENTS.md) instead.
 
-- **What it is:** a Claude Code mod (function hooks in TypeScript) that redraws assistant replies, slash-command output, tool rows, the turn footer and user prompts. It changes how things look, and with `diagramHints` on (the default) it also asks Claude to build a reply around pictures when they make it easier to grasp, with the core on the first screen as a picture or a sentence. The one thing it sends the model is the optional diagram hint below.
+- **What it is:** a Claude Code mod (function hooks in TypeScript) that redraws assistant replies, slash-command output, tool rows (opt-in with `toolRows`), the turn footer and user prompts. It changes how things look, and with `diagramHints` on (the default) it also asks Claude to build a reply around pictures when they make it easier to grasp, with the core on the first screen as a picture or a sentence. The one thing it sends the model is the optional diagram hint below.
 - **Install:** symlink a checkout of this repo to `~/.claude/skills/merman` (`$CLAUDE_CONFIG_DIR/skills/merman` when that is set). It loads in place as `merman@skills-dir`, with no install command. Needs Claude Code 2.1.287+. Changes, including a `git pull`, apply after `/reload-plugins`.
 - **Configure:** `/merman theme <name>` and `/merman setup` set options at runtime. Every option is a key under `pluginConfigs["merman@skills-dir"].options` in `~/.claude/settings.json` (or a row in `/config`), then `/reload`. Options and defaults are in the [Configure](#configure) table; the machine-readable source is `userConfig` in [.claude-plugin/plugin.json](.claude-plugin/plugin.json). Color values that don't parse are ignored.
 - **Side effects:** no network. Programs it runs: the `⧉ html` and `▣ png` clipboard helper (`/usr/bin/osascript` on macOS, `powershell.exe` on Windows, `copyq` on Linux for `⧉ html` only, 5 second timeout, 15 on Windows, only on a click), and `ratex-render` while `latex` is on. With `diagramHints` on, it adds about 355 tokens of model-only context (about 410 while `latex` is on) once per conversation, to the first prompt you type or another plugin sends, and again after a compaction drops it, as broken down under [Diagram hints](#diagram-hints).

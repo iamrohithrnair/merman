@@ -752,7 +752,7 @@ export const register: Register = (on, options) => {
     firstEdit ??= e.props.tool_use_id
     return { press, id: e.props.tool_use_id, below, notes: editNotes(edits, firstEdit === e.props.tool_use_id, shellCommands.get(e.props.tool_use_id)), columns: e.viewport?.columns }
   }
-  if (options.toolRows !== false) {
+  if (options.toolRows === true) {
     on('ui.render', { component: 'ToolGroup' }, async ($, e, next) => {
       noteCalls(e.props.calls, e.props.isExpanded)
       const counted = countedCalls(e.props.calls)

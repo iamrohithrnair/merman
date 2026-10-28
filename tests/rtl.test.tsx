@@ -1,4 +1,5 @@
-import { expect, mock, test } from 'claude-code/testing'
+import { expect, mock } from 'claude-code/testing'
+import { test } from './tool-rows'
 import type { TestBody } from 'claude-code/testing'
 
 import type { Inline } from '../hooks/markdown'

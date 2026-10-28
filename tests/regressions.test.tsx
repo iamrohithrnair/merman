@@ -1,6 +1,7 @@
 import type { On } from 'claude-code'
 import type { Engine } from 'claude-code/testing'
-import { expect, mock, test } from 'claude-code/testing'
+import { expect, mock } from 'claude-code/testing'
+import { test } from './tool-rows'
 
 import { helpText, setupParts, setupText, showcaseText } from '../hooks/help'
 import { inlineText, parse } from '../hooks/markdown'
