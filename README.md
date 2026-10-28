@@ -11,6 +11,7 @@
 
 <p align="center">
   <a href="#install"><strong>Install</strong></a> ·
+  <a href="#performance">Performance</a> ·
   <a href="#themes">Themes</a> ·
   <a href="#features">Features</a> ·
   <a href="#configure">Configure</a> ·
@@ -21,25 +22,50 @@
 
 ## TL;DR
 
+- merman is a Claude Code mod: a plugin of TypeScript hooks that redraws what Claude Code shows on screen. It is not a tool or MCP server, and Claude never calls it.
 - Claude Code prints mermaid as source and tool calls as walls of text. merman draws them: real charts and flowcharts, typeset LaTeX math in kitty and Ghostty, colored tables and code, and quiet tool rows.
 - 16 palettes plus `mono`, and copy buttons on everything.
-- One link to install, `/plugin` to turn it off. Claude Code's own renderer comes back the moment you do.
+- Clone and link to install, `/plugin` to turn it off. Claude Code's own renderer comes back the moment you do.
 - No network calls. It runs a program only when you click `⧉ html` or `▣ png` (the clipboard helper) or turn on LaTeX (RaTeX's renderer).
-
-From the root of a checkout of this repo, link it into Claude Code's skills folder:
-
-```bash
-mkdir -p "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills"
-ln -s "$PWD" "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/merman"
-```
-
-Then, in a new session or after `/reload-plugins`, run `/merman setup` to pick a theme and styles from drawn samples, and `/merman demo` for a tour of the main features. In a terminal, setup opens a pane: the arrows or Tab move through the styles of a step with a preview of the one in focus, Enter saves it and shows the next step. Where the session has no terminal, as in the desktop app, it walks the same steps in the transcript.
+- A full reply renders in about 2 ms; see [Performance](#performance).
 
 ## Install
 
-Requires Claude Code **2.1.287** or later. Claude Code needs no install command: a folder in `~/.claude/skills/` (`$CLAUDE_CONFIG_DIR/skills/` when that is set) that holds a `.claude-plugin/plugin.json` loads at every session start as a skills-directory plugin, here `merman@skills-dir`. `claude plugin list` shows it with `Status: ✔ loaded`.
+Requires Claude Code **2.1.287** or later.
+
+1. Clone the repo anywhere you keep code:
+
+   ```bash
+   git clone https://github.com/iamrohithrnair/merman.git
+   cd merman
+   ```
+
+2. Link the checkout into Claude Code's skills folder:
+
+   ```bash
+   mkdir -p "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills"
+   ln -s "$PWD" "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/merman"
+   ```
+
+3. Start a new session, or run `/reload-plugins` in an open one. Check it loaded:
+
+   ```bash
+   claude plugin list
+   ```
+
+   It shows `merman@skills-dir` with `Status: ✔ loaded`.
+
+4. Run `/merman setup` to pick a theme and styles, then `/merman demo` for a tour.
+
+In a terminal, setup opens a pane: the arrows or Tab move through the styles of a step with a preview of the one in focus, Enter saves it and shows the next step. Where the session has no terminal, as in the desktop app, it walks the same steps in the transcript.
+
+### How it loads
+
+Claude Code needs no install command: a folder in `~/.claude/skills/` (`$CLAUDE_CONFIG_DIR/skills/` when that is set) that holds a `.claude-plugin/plugin.json` loads at every session start as a skills-directory plugin, here `merman@skills-dir`. `claude plugin list` shows it with `Status: ✔ loaded`.
 
 The link loads the checkout in place, so the checkout is the live source: whatever branch it has checked out is what draws. A copy of the checkout in that folder works too, but does not follow later pulls.
+
+### Update, disable, uninstall
 
 To update, pull in the checkout, then run `/reload-plugins` in every open session. A session keeps what it loaded until it reloads.
 
@@ -56,6 +82,35 @@ rm "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/merman"
 ```
 
 For LaTeX math, install RaTeX's renderer and set `latex` to `true`; see [LaTeX math](#latex-math). Until then formulas draw as text.
+
+## Performance
+
+merman draws replies in place of Claude Code's own markdown renderer, so its cost is the time to turn a reply into a tree, plus a one-time note to the model.
+
+| What | Median | p95 |
+| --- | --- | --- |
+| Full demo reply (headings, tables, code, 6 diagrams), first draw | 1.8 ms | 2.3 ms |
+| Same reply, redrawn | 0.29 ms | 0.40 ms |
+| One redraw while a 16 KB reply streams in | 1.2 ms | 2.4 ms |
+| 300-row table | 2.3 ms | 3.0 ms |
+| 800-line highlighted code block | 0.94 ms | 1.7 ms |
+| Markdown parse of the demo reply | 0.06 ms | 0.07 ms |
+
+Measured with `npm --prefix scripts run bench` (200 runs, Node 24, Apple M4 Pro). A 60 Hz frame is 16.7 ms, so even a long reply leaves most of the frame free.
+
+- **Redraws:** finished replies keep their drawing and are reused when only their place on screen changes, so scrolling back does not redraw them.
+- **Screen size:** the demo reply draws in 848 nodes, 4% of Claude Code's 20000-node limit per tree. A 500-line highlighted file uses 38%.
+- **Tokens:** merman's only model-facing cost is the `diagramHints` note, added once to the first prompt of a conversation and again only after a compaction drops it. Like any message it then stays in the conversation's context, where prompt caching covers it on later turns. Replies, tool output and redraws add nothing.
+
+  | Part | Tokens |
+  | --- | --- |
+  | Main note (what merman draws) | about 135 |
+  | Figure rules | about 220 |
+  | LaTeX line, only while `latex` is on | about 55 |
+  | **Total** | **about 355, or 410 with LaTeX** |
+
+  Set `diagramHints` to `false` and merman sends nothing to the model. See [Diagram hints](#diagram-hints).
+- **Size:** 616 KB of hooks on disk, 220 KB of it the bundled mermaid and Prism engines. No network calls.
 
 ## Features
 
