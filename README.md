@@ -1,4 +1,9 @@
-<h1 align="center">merman</h1>
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/logo-dark.png">
+    <img src="docs/logo.png" alt="merman" width="420">
+  </picture>
+</h1>
 
 <p align="center"><em>Mermaid diagrams, tables and code, drawn in color right in Claude Code.</em></p>
 
