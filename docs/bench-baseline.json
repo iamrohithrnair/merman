@@ -9,7 +9,7 @@
   "Hebrew, 300 paragraphs (cold)": 0.62021,
   "code block, 800 lines, highlighted": 0.09254,
   "code block, 1500 lines, drawn plain past the node budget": 0.17641,
-  "stream replay, 163 redraws of a 16380-char reply (per redraw)": 0.11065,
+  "stream replay, 163 redraws of a 16368-char reply (per redraw)": 0.11065,
   "nodes: 500 highlighted ts lines": 7505,
   "nodes: 300 table rows": 5867,
   "nodes: 300 paragraphs": 4800,

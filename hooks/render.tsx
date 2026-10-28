@@ -1619,13 +1619,16 @@ const toolGutter = ({ Box, Text }: ElementTable, style: Style, color: string | u
     ? <Box width={4} flexShrink={0}><Text color={color}>{'  ⎿ '}</Text></Box>
     : <Box width={2} flexShrink={0}><Text color={color}>{running ? '◌' : '●'}</Text></Box>
 
-const toolLayout = (el: ElementTable, style: Style, columns: number, label: string, color: string | undefined, running: boolean, text: RenderElement) => {
+export const EXPAND_HINT = '(ctrl+o to expand)'
+
+const toolLayout = (el: ElementTable, style: Style, columns: number, label: string, color: string | undefined, running: boolean, text: RenderElement, hint = '') => {
   const { Box, Text } = el
-  if (style.toolStyle !== "chat") return <Box flexDirection="row">{toolGutter(el, style, color, running)}{text}</Box>
-  const w = Math.min(width(label) + 2, Math.max(20, Math.floor(columns * 0.6)))
+  const tip = hint ? <Box flexShrink={0}><Text dimColor>{` ${hint}`}</Text></Box> : null
+  if (style.toolStyle !== "chat") return <Box flexDirection="row">{toolGutter(el, style, color, running)}{text}{tip}</Box>
+  const w = Math.min(width(label) + (hint ? width(hint) + 1 : 0) + 2, Math.max(20, Math.floor(columns * 0.6)))
   return (
     <Box flexDirection="row" justifyContent="flex-end" width="100%">
-      <Box width={w} flexDirection="row">{text}<Text color={color}>{running ? " ◌" : " ●"}</Text></Box>
+      <Box width={w} flexDirection="row">{text}{tip}<Text color={color}>{running ? " ◌" : " ●"}</Text></Box>
     </Box>
   )
 }
@@ -2844,7 +2847,7 @@ export const groupSummary = (calls: readonly { tool: string }[]): string => {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
-const quietToolGroup = (el: ElementTable, style: Style, calls: readonly (ToolRow & { output?: unknown })[], isActive: boolean, columns: number): RenderElement => {
+const quietToolGroup = (el: ElementTable, style: Style, calls: readonly (ToolRow & { output?: unknown })[], isActive: boolean, columns: number, hint: string): RenderElement => {
   const t = style.theme
   const failed = calls.filter(c => c.isErrored)
   const running = isActive && calls.some(c => c.isRunning)
@@ -2856,7 +2859,7 @@ const quietToolGroup = (el: ElementTable, style: Style, calls: readonly (ToolRow
   const results = calls.flatMap((c, i) => (c.isErrored || c.output === undefined || !isShell(c) || isReadOnlyCall(c.tool, c.input) ? [] : [<el.Box key={`o${i}`}>{renderShellResult(el, style, c.output)}</el.Box>]))
   const row = toolLayout(el, style, columns, label, dot, running, (
     <el.Text wrap="truncate-end" dimColor={toolDim(style)}>{drawPieces(el, style, labels.flatMap((l, i) => (i ? [{ text: ' · ' }, ...l] : l)))}</el.Text>
-  ))
+  ), hint)
   if (!reasons.length && !results.length) return row
   return (
     <el.Box flexDirection="column">
@@ -2867,8 +2870,8 @@ const quietToolGroup = (el: ElementTable, style: Style, calls: readonly (ToolRow
   )
 }
 
-export const renderToolGroup = (el: ElementTable, style: Style, calls: readonly (ToolRow & { output?: unknown })[], isActive: boolean, columns = 100): RenderElement => {
-  if (style.toolOutput === 'quiet') return quietToolGroup(el, style, calls, isActive, columns)
+export const renderToolGroup = (el: ElementTable, style: Style, calls: readonly (ToolRow & { output?: unknown })[], isActive: boolean, columns = 100, hint = ''): RenderElement => {
+  if (style.toolOutput === 'quiet') return quietToolGroup(el, style, calls, isActive, columns, hint)
   const { Text } = el
   const t = style.theme
   const failed = calls.filter(c => c.isErrored).length
@@ -2885,24 +2888,8 @@ export const renderToolGroup = (el: ElementTable, style: Style, calls: readonly 
         {failed ? <Text color={t.codeFlag}>{` · ${failed} failed`}</Text> : null}
         {lastTarget ? <Text dimColor>{drawPieces(el, style, [{ text: ' · last: ' }, { text: lastTarget, path: toolPath(last?.tool, lastFound.path) }])}</Text> : null}
       </Text>
-  ))
+  ), hint)
 }
-
-export const formatDuration = (ms: number): string => {
-  const s = Math.round(ms / 1000)
-  if (s < 60) return `${Math.max(s, 0)}s`
-  if (s < 3600) return `${Math.floor(s / 60)}m ${s % 60}s`
-  return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`
-}
-
-export const renderTurnDuration = ({ Text }: ElementTable, style: Style, word: string, durationMs: number, time?: string): RenderElement => (
-  <Text color={style.theme.codeComment}>
-    {`✻ ${word} for `}
-    <Text color={style.theme.number}>{formatDuration(durationMs)}</Text>
-    {time === undefined ? null : ' · '}
-    {time === undefined ? null : <Text color={style.theme.number}>{time}</Text>}
-  </Text>
-)
 
 export const pasteLang = (body: string): string => {
   const s = body.trim()

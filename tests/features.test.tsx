@@ -2,7 +2,7 @@ import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 import type { TestBody } from 'claude-code/testing'
 
-import { clockText, endedAt, sentAt } from '../hooks/clock'
+import { clockText, sentAt } from '../hooks/clock'
 import { FIGURE_HINT } from '../hooks/figure'
 import { parse } from '../hooks/markdown'
 import { PRESET_BACKGROUNDS, PRESET_NAMES, PRESETS } from '../hooks/presets'
@@ -10,7 +10,7 @@ import { RANDOM_THEMES, pickTheme, resolveStyle } from '../hooks/theme'
 import { paintOf, tokensOf as paintTokens, shownLines } from './paint'
 import { DEMO_SHOWN, HELP_SHOWN, HINT, KOREAN_DEMO_SHOWN, SETUP_DONE, SETUP_PANE_KEYS, SETUP_PANE_OPENED, setupParts, setupSteps, setupText } from '../hooks/help'
 import type { Theme } from '../hooks/theme'
-import { EDIT_NOTES, PRISM_COLORS, bashEdits, columnWidths, contrast, describeShell, diffLines, diffTint, fullHue, movesTree, onTint, pathLanguage, previewBand, tint, wordTint, errorReason, formatDuration, groupSummary, isReadOnlyCall, programsOf, refusalReason, rememberCall, shortTarget, shortenPaths, withoutBashEdits } from '../hooks/render'
+import { EDIT_NOTES, PRISM_COLORS, bashEdits, columnWidths, contrast, describeShell, diffLines, diffTint, fullHue, movesTree, onTint, pathLanguage, previewBand, tint, wordTint, errorReason, groupSummary, isReadOnlyCall, programsOf, refusalReason, rememberCall, shortTarget, shortenPaths, withoutBashEdits } from '../hooks/render'
 import { claudeAt } from './claude-version'
 
 const t = PRESETS['catppuccin-mocha']
@@ -413,18 +413,6 @@ test('group summaries count by kind', async () => {
   expect(groupSummary([{ tool: 'WebSearch' }])).toBe('Fetched 1 page')
 })
 
-test('turn footer formats durations', async () => {
-  expect(formatDuration(3000)).toBe('3s')
-  expect(formatDuration(380000)).toBe('6m 20s')
-  expect(formatDuration(3720000)).toBe('1h 2m')
-})
-
-test('turn footer keeps the word and colors the duration', async $ => {
-  const ui = await $.ui.mount({ plugin: 'merman', surface: 'terminal', component: 'TurnDuration', props: { word: 'Baked', durationMs: 380000 } })
-  expect((await ui.find({ type: 'Text', text: /^6m 20s$/ }))?.props.color).toBe(t.number)
-  await ui.unmount()
-})
-
 const local = (day: number, h: number, m: number, sec = 0) => new Date(2026, 9, day, h, m, sec).getTime()
 
 test('clock times read as 24h or 12h, with the date when not today', () => {
@@ -442,44 +430,6 @@ test('a row takes the newest matching time recorded before it was first drawn', 
   expect(sentAt(list, 'again', 3)).toBe(3)
   expect(sentAt(list, 'again', 0)).toBeUndefined()
   expect(sentAt(list, 'never sent', 9)).toBeUndefined()
-  const ends = [{ durationMs: 5000, at: 10 }, { durationMs: 60000, at: 20 }, { durationMs: 5200, at: 30 }]
-  expect(endedAt(ends, 5200, 30)).toBe(30)
-  expect(endedAt(ends, 5200, 29)).toBe(10)
-  expect(endedAt(ends, 60400, 30)).toBe(20)
-  expect(endedAt(ends, 90000, 30)).toBeUndefined()
-})
-
-test('clock adds the end time to the turn footer', { options: { clock: '24h' } }, async ($, on) => {
-  mock.clock(on, { now: local(10, 14, 32) })
-  on('turn.complete', async (_$, e) => ({ text: e.answer }))
-  await $.turn.complete({ answer: 'done', durationMs: 380000, isAborted: false, turnId: 't1', reason: 'answer' })
-  const ui = await $.ui.mount({ plugin: 'merman', surface: 'terminal', component: 'TurnDuration', props: { word: 'Baked', durationMs: 380000 } })
-  expect((await ui.find({ type: 'Text', text: /^14:32$/ }))?.props.color).toBe(t.number)
-  await ui.unmount()
-})
-
-test('clock off, or a turn it never saw, leaves the turn footer as it was', async ($, on) => {
-  mock.clock(on, { now: local(10, 14, 32) })
-  on('turn.complete', async (_$, e) => ({ text: e.answer }))
-  await $.turn.complete({ answer: 'done', durationMs: 380000, isAborted: false, turnId: 't1', reason: 'answer' })
-  const ui = await $.ui.mount({ plugin: 'merman', surface: 'terminal', component: 'TurnDuration', props: { word: 'Baked', durationMs: 380000 } })
-  expect(await ui.find({ type: 'Text', text: /^14:32$/ })).toBeUndefined()
-  await ui.unmount()
-})
-
-test('an old turn line that redraws never takes a later end with a close duration', { options: { clock: '24h' } }, async ($, on) => {
-  const clock = mock.clock(on, { now: local(10, 14, 0) })
-  on('turn.complete', async (_$, e) => ({ text: e.answer }))
-  const line = (id: string) => $.ui.mount({ plugin: 'merman', surface: 'terminal', component: 'TurnDuration', requestId: id, props: { word: 'Baked', durationMs: 5000 } })
-  const old = await line('old')
-  await clock.advance(60000)
-  await $.turn.complete({ answer: 'done', durationMs: 5100, isAborted: false, turnId: 't2', reason: 'answer' })
-  await old.redraw()
-  expect(await old.find({ type: 'Text', text: /^14:01$/ })).toBeUndefined()
-  const fresh = await line('new')
-  expect(await fresh.find({ type: 'Text', text: /^14:01$/ })).toBeDefined()
-  await old.unmount()
-  await fresh.unmount()
 })
 
 test('slash command output renders as markdown, errors stay native', async ($, on) => {
@@ -2779,8 +2729,8 @@ test('/merman setup draws each sample in its own style', async $ => {
   expect(await prompts.findAll({ type: 'Text', text: /fix the failing test/ })).toHaveLength(5)
   await prompts.unmount()
   const clock = await mount(6)
-  expect(await clock.findAll({ type: 'Text', text: /^14:32 ?$/ })).toHaveLength(2)
-  expect(await clock.findAll({ type: 'Text', text: /^2:32 PM ?$/ })).toHaveLength(2)
+  expect(await clock.findAll({ type: 'Text', text: /^14:32 ?$/ })).toHaveLength(1)
+  expect(await clock.findAll({ type: 'Text', text: /^2:32 PM ?$/ })).toHaveLength(1)
   expect(await clock.findAll({ type: 'Text', text: /fix the failing test/ })).toHaveLength(3)
   await clock.unmount()
   const tools = await mount(7)
@@ -2843,3 +2793,36 @@ for (const surface of ['terminal', 'desktop'] as const) {
     }
   })
 }
+
+for (const surface of ['terminal', 'desktop'] as const) {
+  test(`a collapsed tool group says how to expand it only where ctrl+o works (${surface})`, async $ => {
+    const ui = await $.ui.mount({ plugin: 'merman', surface, component: 'ToolGroup', props: { calls: [call('Bash', { command: 'ls' }, 'a')], isActive: false, isExpanded: false } })
+    const hint = await ui.find({ type: 'Text', text: /^ \(ctrl\+o to expand\)$/ })
+    if (surface === 'terminal') expect(hint?.props.dimColor).toBe(true)
+    else expect(hint).toBeUndefined()
+    await ui.unmount()
+  })
+}
+
+test('the turn footer is Claude Code\'s own line, so its end time and notes stay', async ($, on) => {
+  engine(on)
+  const ui = await $.ui.mount({ plugin: 'merman', surface: 'terminal', component: 'TurnDuration', props: { word: 'Baked', durationMs: 380000 } })
+  expect(await ui.find({ type: 'Text', text: /^engine$/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('the ctrl+o transcript draws tool rows and quiet results in full', { options: { toolOutput: 'quiet' } }, async ($, on) => {
+  engine(on)
+  const row = await $.ui.mount({ plugin: 'merman', surface: 'terminal', component: 'ToolUse', props: { ...call('Read', { file_path: '/tmp/x' }, 'r1'), isExpanded: true } })
+  expect(await row.find({ type: 'Text', text: /^engine$/ })).toBeDefined()
+  await row.unmount()
+  const result = await $.ui.mount({ plugin: 'merman', surface: 'terminal', component: 'ToolResult', props: { tool_use_id: 'r1', tool: 'Read', output: 'x', isErrored: false, isExpanded: true } })
+  expect(await result.find({ type: 'Text', text: /^engine$/ })).toBeDefined()
+  await result.unmount()
+})
+
+test('a reply block holding a summary keeps its summary mark', async $ => {
+  const ui = await $.ui.mount({ plugin: 'merman', surface: 'terminal', component: 'AssistantMessage', props: { text: 'Read the config and ran the tests.', isFirstOfReply: true, isSummary: true } })
+  expect((await ui.find({ type: 'Text', text: /^· summary$/ }))?.props.dimColor).toBe(true)
+  await ui.unmount()
+})

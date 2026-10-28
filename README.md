@@ -125,12 +125,11 @@ Measured with `npm --prefix scripts run bench` (200 runs, Node 24, Apple M4 Pro)
 | [Layout](#layout) | back-to-back tables and diagrams sit side by side and wrap on narrow terminals |
 | [Copy buttons](#copy-buttons) | `⧉ md`, `⧉ art`, `⧉ html` and `▣ png` on tables, `[ ⧉ copy ]` on code, lists and quotes, `/merman copy` without a mouse |
 | [Tool rows](#tool-rows) | `Ran gh pr view 12`, `Read ~/src/app.ts`, groups summed up as `Ran 3 commands, read 2 files`, with status dots; `toolOutput: quiet` hides what Claude only read and says in plain words what each call did |
-| [Turn footer](#turn-footer) | `✻ Baked for 6m 20s` with the duration in the number color |
 | [Slash commands](#slash-commands) | command output (`/cost`, `/context`, plugin commands) gets the same tables and code styling |
 | [Diagram hints](#diagram-hints) | a short model-only note, once per conversation, so Claude reaches for diagrams, charts and figures when they help, and builds explaining replies around the pictures |
 | [Text](#text) | bold, italic, strikethrough, inline code, links, versions, durations, percentages and clickable paths in their own colors |
 | [Headings, lists, quotes](#headings-lists-quotes) | 4 heading styles, nested lists, task lists, quotes with an accent bar |
-| [Your prompts](#your-prompts) | what you type draws in a bubble, an accent bar or a chevron, so you find your turns when you scroll back, and `clock` adds when you sent it and when the turn finished |
+| [Your prompts](#your-prompts) | what you type draws in a bubble, an accent bar or a chevron, so you find your turns when you scroll back, and `clock` adds when you sent it |
 | [Right to left](#right-to-left) | Hebrew and Arabic read right to left, with bullets, quote bars and table columns mirrored |
 | [Other mods](#other-mods) | `$.merman.markdown` draws any markdown the way replies are drawn, for mod authors |
 
@@ -248,7 +247,7 @@ Each tool call draws as one line: a verb and its target, `Ran` with a colored sh
 |---|---|---|---|
 | rounded box, tinted lines | no box, lines tinted across the width | no tint, colored `+` and `−` | no tint, a colored `▌` before each changed line |
 
-Collapsed groups draw one line too: `Ran 3 commands, read 2 files · last: npm test`, with `· N failed` in the flag color when any call failed. Expand a group (ctrl+o or `--verbose`): shell calls keep their colored command with the output boxed below, and other calls use Claude Code's own rows. ctrl+o on a reply shows the original text.
+Collapsed groups draw one line too: `Ran 3 commands, read 2 files · last: npm test (ctrl+o to expand)`, with `· N failed` in the flag color when any call failed. In the ctrl+o transcript every row and result draws in full, as Claude Code has it. Expand a group (ctrl+o or `--verbose`): shell calls keep their colored command with the output boxed below, and other calls use Claude Code's own rows. ctrl+o on a reply shows the original text.
 
 `toolStyle` keeps tool rows apart from what Claude says:
 
@@ -257,10 +256,6 @@ Collapsed groups draw one line too: `Ran 3 commands, read 2 files · last: npm t
 | dimmed on the right, capped at 60% of the width | tucked under the sentence with `⎿`, dimmed | `tree-dim` with one-line sentences in bold | bold verb and status dot, full brightness |
 
 `toolOutput: quiet` shows what Claude did, not what it read: reads, searches and read-only shell commands draw one plain row like `Read src/report.py lines 1–10` and nothing under it. Edits keep their diff and failures show their real error; the full rules are in [docs/tool-output.md](docs/tool-output.md).
-
-### Turn footer
-
-The line that closes a turn keeps Claude Code's word and colors the duration: `✻ Baked for 6m 20s`. Terminal only, since that's the only surface that draws it.
 
 ### Slash commands
 
@@ -304,12 +299,12 @@ What you type, at the prompt or through Remote Control, draws in the theme's col
 |---|---|---|---|
 | a prompt in a rounded box | a prompt in a rounded box across the full width | a prompt with an accent bar | a prompt with a bold chevron |
 
-`clock` adds the time: each prompt shows when you sent it, and the line that closes each turn when it finished (`✻ Baked for 1m 55s · 14:32`). It reads `24h` or `12h`, and a time from another day gets its date. With `promptStyle: off` the time goes in front of Claude Code's own prompt row. Off by default.
+`clock` adds the time each prompt was sent. The line that closes a turn is Claude Code's own, with its end time (`✻ Baked for 1m 55s · done 14:32`). It reads `24h` or `12h`, and a time from another day gets its date. With `promptStyle: off` the time goes in front of Claude Code's own prompt row. Off by default.
 
-| `clock` | on a prompt | and on a turn's last line |
-|---|---|---|
-| `24h` | a prompt bubble that starts with the time it was sent | a turn line that ends with the time it finished |
-| `12h` | a prompt bubble that starts with 5:45 PM | a turn line that ends with 5:45 PM |
+| `clock` | on a prompt |
+|---|---|
+| `24h` | a prompt bubble that starts with the time it was sent |
+| `12h` | a prompt bubble that starts with 5:45 PM |
 
 ### Right to left
 

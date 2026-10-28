@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, PluginOptions, PromptOrigin, Register, RenderElement, RenderInput, RenderSurface, RenderViewport, ToolGroupCall } from 'claude-code'
 
-import { clockText, endedAt, promptKey, sentAt, withRecord } from './clock'
+import { clockText, promptKey, sentAt, withRecord } from './clock'
 import type { Formula } from './latex'
 import { LATEX_DPR, LATEX_FONT_PX, MAX_IMAGE_BYTES, MAX_PICTURE_BYTES, fitImage, fitsImage, formulaBytes, imageFile, imageOf, keepFormulas, mathOf, padFor, pickFormula, pngSize, ratexColor, renderedOf } from './latex'
 import type { Block } from './markdown'
@@ -12,7 +12,7 @@ import { drawnOnce, drawnPlain, idOf, textOf } from './drawings'
 import { FIGURE_HINT } from './figure'
 import { drawDiagrams, viewerProps } from './mermaid'
 import type { BashEdits, CopyButton, DrawPaste, Drawn, Fold, TerminalEnv, ToolRow } from './render'
-import { MARK, bashEdits, chars, diffCard, drawDiffCard, drawMath, drawsHyperlinks, editNotes, fileRoot, hasShellOutput, instanceKey, isReadOnlyCall, leftToEngine, markerRoom, mirrored, noteTip, pasteLang, pathsToProbe, remember, rememberCall, renderBashEdits, renderBlocks, renderDiffCard, renderExpandedShell, renderFailure, renderShellResult, renderToolGroup, renderToolRow, renderTurnDuration, renderUserPrompt, takesClickableMarks, takesEditorLinks, takesHttpLinks, withoutBashEdits } from './render'
+import { EXPAND_HINT, MARK, bashEdits, chars, diffCard, drawDiffCard, drawMath, drawsHyperlinks, editNotes, fileRoot, hasShellOutput, instanceKey, isReadOnlyCall, leftToEngine, markerRoom, mirrored, noteTip, pasteLang, pathsToProbe, remember, rememberCall, renderBashEdits, renderBlocks, renderDiffCard, renderExpandedShell, renderFailure, renderShellResult, renderToolGroup, renderToolRow, renderUserPrompt, takesClickableMarks, takesEditorLinks, takesHttpLinks, withoutBashEdits } from './render'
 import type { SetupStep } from './help'
 import { HELP_SHOWN, HINT, RTL_DEMO_SHOWN, SETUP_DONE, SETUP_PANE_KEYS, SETUP_PANE_OPENED, THEME_PREVIEW, demoShown, findSetup, setupParts, setupSteps, setupText, shownScreen } from './help'
 import { PRESET_NAMES } from './presets'
@@ -88,7 +88,6 @@ const formulas = atom({ plugin: 'merman', key: 'formulas' } as const, {})
 const latexDir = atom({ plugin: 'merman', key: 'dir' } as const, '')
 const unfolded = atom({ plugin: 'merman', key: 'unfolded' } as const, [] as string[])
 const sent = atom({ plugin: 'merman', key: 'sent' } as const, [])
-const turnEnds = atom({ plugin: 'merman', key: 'turnEnds' } as const, [])
 const setupAt = atom({ plugin: 'merman', key: 'setupAt' } as const, 0)
 const setupFocus = atom({ plugin: 'merman', key: 'setupFocus' } as const, '')
 const setupLand = atom({ plugin: 'merman', key: 'setupLand' } as const, '')
@@ -368,6 +367,8 @@ const tracked = (fold: Fold, open?: readonly string[], folds?: Map<string, boole
 
 type Kept = { id: string; key: () => string }
 
+const showsAll = (quiet: boolean, expanded?: boolean): boolean => !quiet || expanded === true
+
 const plainDrawing = <T extends RenderElement | undefined>($: EngineInterface, style: Style, at: Kept, text: string, draw: () => T) => drawnPlain(at.id, at.key, text, draw, () => locate($, style))
 
 const quietResult = async ($: EngineInterface, el: ReturnType<EngineInterface['ui']['resolve']>, props: RenderInput<'ToolResult'>['props'], style: Style, drawn: () => Style, at: (kind: string) => Kept): Promise<RenderElement | undefined> => {
@@ -638,7 +639,7 @@ const copySample = (el: ReturnType<EngineInterface['ui']['resolve']>, style: Sty
 const clockSample = (el: ReturnType<EngineInterface['ui']['resolve']>, style: Style, value: string, id: string, columns: number): RenderElement[] => {
   const time = value === '24h' || value === '12h' ? clockText(SETUP_SENT, SETUP_SENT, value) : undefined
   const prompt = style.promptStyle === 'off' ? <el.Text dimColor>{`> ${time === undefined ? '' : `[${time}] `}fix the failing test`}</el.Text> : renderUserPrompt(el, style, 'fix the failing test', columns, time)
-  return [<el.Box key={`${id}p`}>{prompt}</el.Box>, <el.Box key={`${id}d`}>{renderTurnDuration(el, style, 'Baked', 115000, time)}</el.Box>]
+  return [<el.Box key={`${id}p`}>{prompt}</el.Box>]
 }
 
 const SETUP_EDIT = {
@@ -757,14 +758,14 @@ export const register: Register = (on, options) => {
       if (e.props.isExpanded) return next(e)
       const reach = await linkReach($, probes, style)
       const calls = e.props.calls.map(callOf(quiet))
-      return plainDrawing($, style, kept(e, reach)('group'), textOf([calls, e.props.isActive]), () => renderToolGroup($.ui.resolve(e), forSurface(fit(e.viewport), e.surface, reach), calls, e.props.isActive, e.viewport?.columns))
+      return plainDrawing($, style, kept(e, reach)('group'), textOf([calls, e.props.isActive]), () => renderToolGroup($.ui.resolve(e), forSurface(fit(e.viewport), e.surface, reach), calls, e.props.isActive, e.viewport?.columns, e.surface === 'terminal' ? EXPAND_HINT : ''))
     })
     on('ui.render', { component: 'ToolUse' }, async ($, e, next) => {
       noteCommand(e.props.tool_use_id, e.props.tool, e.props.input)
       if (quiet && isReadOnlyCall(e.props.tool, e.props.input)) rememberCall(readOnlyCalls, e.props.tool_use_id)
       const reach = await linkReach($, probes, style)
       const row = rowOf(e.props)
-      if (!expandedCalls.has(e.props.tool_use_id)) return plainDrawing($, style, kept(e, reach)('tool', 'row'), textOf(row), () => renderToolRow($.ui.resolve(e), forSurface(fit(e.viewport), e.surface, reach), row, e.viewport?.columns))
+      if (!e.props.isExpanded && !expandedCalls.has(e.props.tool_use_id)) return plainDrawing($, style, kept(e, reach)('tool', 'row'), textOf(row), () => renderToolRow($.ui.resolve(e), forSurface(fit(e.viewport), e.surface, reach), row, e.viewport?.columns))
       if (!shellTool(e.props.tool) || typeof e.props.output === 'string') return next(e)
       const ran = { ...row, output: e.props.output }
       return plainDrawing($, style, kept(e, reach)('tool', 'shell'), textOf(ran), () => renderExpandedShell($.ui.resolve(e), fit(e.viewport), ran, e.viewport?.columns))
@@ -772,7 +773,7 @@ export const register: Register = (on, options) => {
     on('ui.render', { component: 'ToolResult' }, async ($, e, next) => {
       const file = (e.props.tool === 'Edit' || e.props.tool === 'Write') && !e.props.isErrored
       const edits = e.props.tool === 'Bash' && !e.props.isErrored ? bashEdits(e.props.output) : undefined
-      if (!file && !edits && !quiet) return next(e)
+      if (!file && !edits && showsAll(quiet, e.props.isExpanded)) return next(e)
       const reach = await linkReach($, probes, style)
       const el = $.ui.resolve(e)
       const at = kept(e, reach)
@@ -826,20 +827,6 @@ export const register: Register = (on, options) => {
     if (!name) return { text: options.theme === 'random' ? `current: ${picked.theme} (random)\nkeep it: /merman theme ${picked.theme}` : `current: ${picked.theme}` }
     if (!THEME_ARGS.includes(name)) return { text: `Unknown theme "${name}". Themes: ${PRESET_NAMES.join(', ')}, random` }
     return { text: await setTheme($, picked, name) }
-  })
-
-  on('ui.render', { component: 'TurnDuration' }, async ($, e) => {
-    const at = style.clock === 'off' ? undefined : endedAt(await read($, turnEnds), e.props.durationMs, await firstDrawn($, e.requestId))
-    const time = at === undefined ? undefined : clockText(at, await $.clock.now(), style.clock)
-    return renderTurnDuration($.ui.resolve(e), style, e.props.word, e.props.durationMs, time)
-  })
-
-  on('turn.complete', async ($, e, next) => {
-    if (style.clock !== 'off' && e.agentId === undefined) {
-      const at = await $.clock.now()
-      await update($, turnEnds, list => withRecord(list, { durationMs: e.durationMs, at }))
-    }
-    return next(e)
   })
 
   on('prompt.submit', async ($, e, next) => {
@@ -956,7 +943,7 @@ export const register: Register = (on, options) => {
     const { style: surfaceStyle, found: located } = await withFoundPaths($, pathChecks, forSurface(fit(e.viewport), e.surface, reach), blocks)
     const reply = blocks.length > 1 || hasRtl(e.props.text) ? e.props.text : undefined
     const corner = reply !== undefined && markerRoom(surfaceStyle) > 0
-    const key = drawingKey(e.surface, e.viewport, reach, located, e.props.isFirstOfReply)
+    const key = drawingKey(e.surface, e.viewport, reach, located, e.props.isFirstOfReply, e.props.isSummary)
     return drawnOnce(`reply:${e.surface}:${e.requestId}`, () => key, e.props.text, math.size + pictures.size === 0, () => read($, unfolded), (open, folds) => (
       <Box key="msg" flexDirection="row">
         <Box width={2} flexShrink={0}>
@@ -964,6 +951,7 @@ export const register: Register = (on, options) => {
         </Box>
         <Box flexDirection="column" rowGap={1} flexGrow={1}>
           {drawMarkdown($, el, narration ? { ...surfaceStyle, narration } : surfaceStyle, blocks, columnsOf(e.viewport), math, pictures, reply, open, { id: e.requestId, press: reach.marks }, folds)}
+          {e.props.isSummary ? <Text dimColor>· summary</Text> : null}
         </Box>
         {corner ? <Box width={MARK} flexShrink={0} /> : null}
       </Box>
