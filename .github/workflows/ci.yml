@@ -141,9 +141,10 @@ jobs:
       - name: Versions agree
         run: |
           v=$(jq -r .version .claude-plugin/plugin.json)
+          m=$(jq -r '.plugins[0].version' .claude-plugin/marketplace.json)
           c=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' docs/CHANGELOG.md | tr -d '#[] ')
-          echo "plugin=$v changelog=$c"
-          test "$v" = "$c"
+          echo "plugin=$v marketplace=$m changelog=$c"
+          test "$v" = "$m" && test "$v" = "$c"
       - name: Lockfile pins no registry
         run: "! grep -q '\"resolved\"' scripts/package-lock.json"
       - name: Hooks never use the network
@@ -168,3 +169,10 @@ jobs:
           mkdir -p "$CLAUDE_CONFIG_DIR/skills"
           ln -s "$PWD" "$CLAUDE_CONFIG_DIR/skills/merman"
           claude plugin list --json | jq -e '.[] | select(.id == "merman@skills-dir" and .enabled)'
+      - name: Installs from the marketplace into a clean config
+        env:
+          CLAUDE_CONFIG_DIR: ${{ runner.temp }}/market
+        run: |
+          claude plugin marketplace add "$PWD"
+          claude plugin install merman@merman
+          claude plugin list --json | jq -e '.[] | select(.id == "merman@merman" and .enabled)'

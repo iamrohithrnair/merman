@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Merman is a Claude Code mod that redraws assistant replies with themeable colors: tables, headings, lists, quotes, code, numbers, paths, links and mermaid diagrams. It ships as a single plugin from this repo: a checkout linked into Claude Code's skills folder loads in place as `merman@skills-dir`.
+Merman is a Claude Code mod that redraws assistant replies with themeable colors: tables, headings, lists, quotes, code, numbers, paths, links and mermaid diagrams. It ships as a single plugin from this repo. Users install it from the repo's own marketplace (`.claude-plugin/marketplace.json`, pinned to the latest release tag) as `merman@merman`; a checkout linked into Claude Code's skills folder loads in place as `merman@skills-dir` for development.
 
 ## Layout
 

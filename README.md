@@ -25,57 +25,56 @@
 - merman is a Claude Code mod: a plugin of TypeScript hooks that redraws what Claude Code shows on screen. It is not a tool or MCP server, and Claude never calls it.
 - Claude Code prints mermaid as source and tool calls as walls of text. merman draws them: real charts and flowcharts, typeset LaTeX math in kitty and Ghostty, colored tables and code, and, if you opt in, quiet tool rows.
 - 16 palettes plus `mono`, and copy buttons on everything.
-- Clone and link to install, `/plugin` to turn it off. Claude Code's own renderer comes back the moment you do.
+- One command to install, `/plugin` to turn it off. Claude Code's own renderer comes back the moment you do.
 - No network calls. It runs a program only when you click `⧉ html` or `▣ png` (the clipboard helper) or turn on LaTeX (RaTeX's renderer).
 - A full reply renders in about 2 ms; see [Performance](#performance).
 
 ## Install
 
-Requires Claude Code **2.1.311** or later.
+Requires Claude Code **2.1.311** or later. One line in your shell:
 
-1. Clone the repo anywhere you keep code:
+```bash
+claude plugin marketplace add iamrohithrnair/merman && claude plugin install merman@merman
+```
 
-   ```bash
-   git clone https://github.com/iamrohithrnair/merman.git
-   cd merman
-   ```
+Or inside Claude Code:
 
-2. Link the checkout into Claude Code's skills folder:
+```
+/plugin marketplace add iamrohithrnair/merman
+/plugin install merman@merman
+```
 
-   ```bash
-   mkdir -p "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills"
-   ln -s "$PWD" "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/merman"
-   ```
-
-3. Start a new session, or run `/reload-plugins` in an open one. Check it loaded:
-
-   ```bash
-   claude plugin list
-   ```
-
-   It shows `merman@skills-dir` with `Status: ✔ loaded`.
-
-4. Run `/merman setup` to pick a theme and styles, then `/merman demo` for a tour.
+Then start a new session, or run `/reload-plugins` in an open one, and run `/merman setup` to pick a theme and styles, then `/merman demo` for a tour.
 
 In a terminal, setup opens a pane: the arrows or Tab move through the styles of a step with a preview of the one in focus, Enter saves it and shows the next step. Where the session has no terminal, as in the desktop app, it walks the same steps in the transcript.
 
-### How it loads
-
-Claude Code needs no install command: a folder in `~/.claude/skills/` (`$CLAUDE_CONFIG_DIR/skills/` when that is set) that holds a `.claude-plugin/plugin.json` loads at every session start as a skills-directory plugin, here `merman@skills-dir`. `claude plugin list` shows it with `Status: ✔ loaded`.
-
-The link loads the checkout in place, so the checkout is the live source: whatever branch it has checked out is what draws. A copy of the checkout in that folder works too, but does not follow later pulls.
-
 ### Update, disable, uninstall
 
-To update, pull in the checkout, then run `/reload-plugins` in every open session. A session keeps what it loaded until it reloads.
+The install follows tagged releases. To update to the latest one:
 
 ```bash
-git pull
+claude plugin marketplace update merman && claude plugin update merman@merman
 ```
 
-To turn it off or on, run `claude plugin disable merman@skills-dir` or `claude plugin enable merman@skills-dir`, or use `/plugin`.
+Then run `/reload-plugins` in every open session. A session keeps what it loaded until it reloads.
 
-To uninstall, delete the link. `claude plugin uninstall` does not apply to a skills-directory plugin, and `rm` without `-r` removes only the link, not the checkout:
+To turn it off or on, run `claude plugin disable merman@merman` or `claude plugin enable merman@merman`, or use `/plugin`. To remove it:
+
+```bash
+claude plugin uninstall merman@merman
+```
+
+### From a checkout
+
+To run the latest `main`, or your own changes, link a clone into Claude Code's skills folder instead. It loads in place as `merman@skills-dir`, so whatever the checkout has is what draws; `git pull` and `/reload-plugins` update it. Uninstall the marketplace copy first so the two don't both load.
+
+```bash
+git clone https://github.com/iamrohithrnair/merman.git && cd merman
+mkdir -p "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills"
+ln -s "$PWD" "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/merman"
+```
+
+To remove it, delete the link: `rm` without `-r` removes only the link, not the checkout.
 
 ```bash
 rm "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/merman"
@@ -319,7 +318,7 @@ Open `/config` and look for the **merman** rows, or set values in `~/.claude/set
 ```json
 {
   "pluginConfigs": {
-    "merman@skills-dir": {
+    "merman@merman": {
       "options": {
         "theme": "tokyo-night",
         "tableStyle": "grid",
@@ -332,7 +331,7 @@ Open `/config` and look for the **merman** rows, or set values in `~/.claude/set
 }
 ```
 
-Options sit under `options`, keyed by the plugin's id, `merman@skills-dir`. Project settings are not read for plugin options. From a shell, `claude plugin configure merman@skills-dir` lists every option and which are set, and piping it a JSON object such as `{"theme":"nord"}` with `--values-stdin` saves those values.
+Options sit under `options`, keyed by the plugin's id: `merman@merman`, or `merman@skills-dir` for a linked checkout. Project settings are not read for plugin options. From a shell, `claude plugin configure merman@merman` lists every option and which are set, and piping it a JSON object such as `{"theme":"nord"}` with `--values-stdin` saves those values.
 
 | Option | Values | Default |
 | --- | --- | --- |
@@ -407,8 +406,8 @@ A color is hex (`#a6e3a1`, `#fc0`), `rgb(166,227,161)`, `ansi256(114)` or a name
 To change the code, read [AGENTS.md](AGENTS.md) instead.
 
 - **What it is:** a Claude Code mod (function hooks in TypeScript) that redraws assistant replies, slash-command output, tool rows (opt-in with `toolRows`), the turn footer and user prompts. It changes how things look, and with `diagramHints` on (the default) it also asks Claude to build a reply around pictures when they make it easier to grasp, with the core on the first screen as a picture or a sentence. The one thing it sends the model is the optional diagram hint below.
-- **Install:** symlink a checkout of this repo to `~/.claude/skills/merman` (`$CLAUDE_CONFIG_DIR/skills/merman` when that is set). It loads in place as `merman@skills-dir`, with no install command. Needs Claude Code 2.1.311+. Changes, including a `git pull`, apply after `/reload-plugins`.
-- **Configure:** `/merman theme <name>` and `/merman setup` set options at runtime. Every option is a key under `pluginConfigs["merman@skills-dir"].options` in `~/.claude/settings.json` (or a row in `/config`), then `/reload`. Options and defaults are in the [Configure](#configure) table; the machine-readable source is `userConfig` in [.claude-plugin/plugin.json](.claude-plugin/plugin.json). Color values that don't parse are ignored.
+- **Install:** `claude plugin marketplace add iamrohithrnair/merman && claude plugin install merman@merman`, then `/reload-plugins`. Needs Claude Code 2.1.311+. For development, symlink a checkout to `~/.claude/skills/merman` (`$CLAUDE_CONFIG_DIR/skills/merman` when that is set) instead; it loads in place as `merman@skills-dir`.
+- **Configure:** `/merman theme <name>` and `/merman setup` set options at runtime. Every option is a key under `pluginConfigs["merman@merman"].options` (`merman@skills-dir` for a linked checkout) in `~/.claude/settings.json` (or a row in `/config`), then `/reload`. Options and defaults are in the [Configure](#configure) table; the machine-readable source is `userConfig` in [.claude-plugin/plugin.json](.claude-plugin/plugin.json). Color values that don't parse are ignored.
 - **Side effects:** no network. Programs it runs: the `⧉ html` and `▣ png` clipboard helper (`/usr/bin/osascript` on macOS, `powershell.exe` on Windows, `copyq` on Linux for `⧉ html` only, 5 second timeout, 15 on Windows, only on a click), and `ratex-render` while `latex` is on. With `diagramHints` on, it adds about 355 tokens of model-only context (about 410 while `latex` is on) once per conversation, to the first prompt you type or another plugin sends, and again after a compaction drops it, as broken down under [Diagram hints](#diagram-hints).
 - **Turning it off:** `"enabled": false`, or disable the plugin in `/plugin`.
 - **For other mods:** `$.merman.markdown({ surface, text, columns })`, typed in [types/index.d.ts](types/index.d.ts). See [Other mods](#other-mods).
