@@ -2287,3 +2287,24 @@ test('copying a table keeps a <br> cell as one cell: a <br> in HTML, a quoted mu
   expect(tableHtml(table)).toContain('<td style="text-align: left">one<br><strong>two</strong></td>')
   expect(tableText(table)).toBe('a\tb\n"one\ntwo"\tx')
 })
+
+for (const surface of ['terminal', 'desktop'] as const) {
+  test(`a tool group counts each call once and leaves out the calls Claude Code folds away (${surface})`, { options: { toolRows: true } }, async $ => {
+    const seq = toolCall('Bash', { command: 'seq 1 40' }, 'count-seq')
+    const calls = [toolCall('ToolSearch', { query: 'select:Read' }, 'count-search'), seq, seq, toolCall('TodoWrite', { todos: [] }, 'count-todo')]
+    const ui = await $.ui.mount({ plugin: 'merman', surface, component: 'ToolGroup', props: { calls, isActive: false, isExpanded: false } })
+    expect(await ui.find({ type: 'Text', text: /^Ran 1 command$/ })).toBeDefined()
+    expect(await ui.find({ text: /Ran 2|ToolSearch|TodoWrite/ })).toBeUndefined()
+    await ui.unmount()
+  })
+}
+
+test('a tool group of only silently folded calls is left to Claude Code', { options: { toolRows: true } }, async ($, on) => {
+  on('ui.render', ($, e) => {
+    const el = $.ui.resolve(e)
+    return <el.Text>engine</el.Text>
+  })
+  const ui = await $.ui.mount({ plugin: 'merman', surface: 'terminal', component: 'ToolGroup', props: { calls: [toolCall('ToolSearch', { query: 'select:Read' }, 'only-search')], isActive: false, isExpanded: false } })
+  expect(await ui.find({ type: 'Text', text: /^engine$/ })).toBeDefined()
+  await ui.unmount()
+})

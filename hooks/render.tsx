@@ -2831,6 +2831,19 @@ const GROUPS: [RegExp, string, string][] = [
   [/^(Agent|Task)$/, 'delegated', 'task'],
 ]
 
+const SILENT_TOOLS = new Set(['ToolSearch', 'TodoWrite', 'TaskCreate', 'TaskGet', 'TaskUpdate', 'TaskList', 'REPL'])
+
+export const countedCalls = <T extends { tool: string; tool_use_id?: string }>(calls: readonly T[]): T[] => {
+  const seen = new Set<string>()
+  return calls.filter(call => {
+    if (SILENT_TOOLS.has(call.tool)) return false
+    if (call.tool_use_id === undefined) return true
+    if (seen.has(call.tool_use_id)) return false
+    seen.add(call.tool_use_id)
+    return true
+  })
+}
+
 export const groupSummary = (calls: readonly { tool: string }[]): string => {
   const counts = new Map<string, number>()
   for (const call of calls) {

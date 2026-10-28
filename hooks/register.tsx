@@ -12,7 +12,7 @@ import { drawnOnce, drawnPlain, idOf, textOf } from './drawings'
 import { FIGURE_HINT } from './figure'
 import { drawDiagrams, viewerProps } from './mermaid'
 import type { BashEdits, CopyButton, DrawPaste, Drawn, Fold, TerminalEnv, ToolRow } from './render'
-import { EXPAND_HINT, MARK, bashEdits, chars, diffCard, drawDiffCard, drawMath, drawsHyperlinks, editNotes, fileRoot, hasShellOutput, instanceKey, isReadOnlyCall, leftToEngine, markerRoom, mirrored, noteTip, pasteLang, pathsToProbe, remember, rememberCall, renderBashEdits, renderBlocks, renderDiffCard, renderExpandedShell, renderFailure, renderShellResult, renderToolGroup, renderToolRow, renderUserPrompt, takesClickableMarks, takesEditorLinks, takesHttpLinks, withoutBashEdits } from './render'
+import { EXPAND_HINT, MARK, bashEdits, chars, countedCalls, diffCard, drawDiffCard, drawMath, drawsHyperlinks, editNotes, fileRoot, hasShellOutput, instanceKey, isReadOnlyCall, leftToEngine, markerRoom, mirrored, noteTip, pasteLang, pathsToProbe, remember, rememberCall, renderBashEdits, renderBlocks, renderDiffCard, renderExpandedShell, renderFailure, renderShellResult, renderToolGroup, renderToolRow, renderUserPrompt, takesClickableMarks, takesEditorLinks, takesHttpLinks, withoutBashEdits } from './render'
 import type { SetupStep } from './help'
 import { HELP_SHOWN, HINT, RTL_DEMO_SHOWN, SETUP_DONE, SETUP_PANE_KEYS, SETUP_PANE_OPENED, THEME_PREVIEW, demoShown, findSetup, setupParts, setupSteps, setupText, shownScreen } from './help'
 import { PRESET_NAMES } from './presets'
@@ -755,9 +755,10 @@ export const register: Register = (on, options) => {
   if (options.toolRows !== false) {
     on('ui.render', { component: 'ToolGroup' }, async ($, e, next) => {
       noteCalls(e.props.calls, e.props.isExpanded)
-      if (e.props.isExpanded) return next(e)
+      const counted = countedCalls(e.props.calls)
+      if (e.props.isExpanded || counted.length === 0) return next(e)
       const reach = await linkReach($, probes, style)
-      const calls = e.props.calls.map(callOf(quiet))
+      const calls = counted.map(callOf(quiet))
       return plainDrawing($, style, kept(e, reach)('group'), textOf([calls, e.props.isActive]), () => renderToolGroup($.ui.resolve(e), forSurface(fit(e.viewport), e.surface, reach), calls, e.props.isActive, e.viewport?.columns, e.surface === 'terminal' ? EXPAND_HINT : ''))
     })
     on('ui.render', { component: 'ToolUse' }, async ($, e, next) => {
