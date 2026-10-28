@@ -2665,6 +2665,28 @@ test('/merman setup in the pane shows the next step and its toast before the sav
   await pane.unmount()
 })
 
+test('/merman setup in the pane moves on without an unhandled failure when a save throws, as one cut off by the mod reloading does', async ($, on) => {
+  const saves: string[] = []
+  on('config.set', (_, e) => {
+    saves.push(e.key)
+    throw new Error('the mod reloaded')
+  })
+  on('ui.focus', () => ({}))
+  const toasts: string[] = []
+  on('ui.toast', (_, e) => {
+    toasts.push(e.text)
+    return { value: undefined }
+  })
+  paneStandIn(on, [])
+  await setupRun($, 'setup')
+  const pane = await setupPane($, 'terminal')
+  await pane.press({ key: 'pick:theme:dracula' })
+  expect(await pane.find({ type: 'Text', text: /Setup 2\/11: Tables/ })).toBeTruthy()
+  expect(saves).toEqual(['merman.theme'])
+  expect(toasts).toEqual(['Theme set to dracula.'])
+  await pane.unmount()
+})
+
 test('/merman setup walks the steps in the transcript and closes the pane when no surface can place it', async ($, on) => {
   const panes: string[] = []
   on('session.surfaces', () => ({ value: ['terminal' as const] }))
