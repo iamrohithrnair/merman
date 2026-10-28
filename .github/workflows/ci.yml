@@ -21,7 +21,7 @@ jobs:
         claude: [latest]
         include:
           - os: ubuntu-latest
-            claude: 2.1.287
+            claude: 2.1.311
     name: test (${{ matrix.os }}, claude ${{ matrix.claude }})
     runs-on: ${{ matrix.os }}
     steps:
@@ -44,10 +44,10 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
-      - run: npm install -g @anthropic-ai/claude-code@2.1.294
+      - run: npm install -g @anthropic-ai/claude-code@2.1.311
       - name: Lay the mod API types
         run: claude --plugin-dir . -p hi || test -d .claude-plugin/types/claude-code
-      - run: npx --yes -p typescript@5.9.3 tsc -p .
+      - run: npx --yes -p typescript@7.0.2 tsc -p .
 
   vendor:
     runs-on: ubuntu-latest

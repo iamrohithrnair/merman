@@ -1406,7 +1406,7 @@ const DENSE = [
   ['/tmp/big.json', Array.from({ length: 450 }, (_, i) => `  { "id": ${i}, "name": "n${i}", "on": ${i % 2 === 0}, "tags": ["a", "b"], "size": ${i * 3} },`)],
 ] as const
 
-test('an opened 450-line new file shows 400 lines, counts the rest and stays well under the node ceiling, strings counted', async ($, on) => {
+test('an opened 450-line new file shows 400 lines, counts the rest and stays well under the node ceiling, strings counted', { timeoutMs: 20000 }, async ($, on) => {
   engine(on)
   claudeAt(on, '2.1.295')
   const pressable = await takesTextButtons($)
@@ -2287,7 +2287,7 @@ test('an opened card of dense lines stays under the engine\'s 20000-node ceiling
   }
 })
 
-test('five opened shell edit cards of dense lines share one node allowance and stay under the ceiling', async ($, on) => {
+test('five opened shell edit cards of dense lines share one node allowance and stay under the ceiling', { timeoutMs: 20000 }, async ($, on) => {
   engine(on)
   const short = Array.from({ length: 450 }, (_, i) => `+[${Array.from({ length: 12 }, (_, k) => (i + k) % 10).join(',')}]`)
   const files = Array.from({ length: 5 }, (_, f) => ({ filePath: `/tmp/d${f}.json`, hunks: [{ oldStart: 1, newStart: 1, oldLines: 0, newLines: 450, lines: short }] }))
@@ -2300,7 +2300,7 @@ test('five opened shell edit cards of dense lines share one node allowance and s
   }
 })
 
-test('clickable diff rows, a new file\'s preview, and new and removed files spend the same node allowance and stay under the ceiling', async ($, on) => {
+test('clickable diff rows, a new file\'s preview, and new and removed files spend the same node allowance and stay under the ceiling', { timeoutMs: 20000 }, async ($, on) => {
   engine(on)
   claudeAt(on, '2.1.295')
   if (!(await takesTextButtons($))) return

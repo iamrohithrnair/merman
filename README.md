@@ -6,7 +6,7 @@
   <a href="https://github.com/iamrohithrnair/merman/releases"><img src="https://img.shields.io/github/v/release/iamrohithrnair/merman?style=flat-square&color=cba6f7" alt="Release"></a>
   <a href="https://github.com/iamrohithrnair/merman/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/iamrohithrnair/merman/ci.yml?branch=main&style=flat-square&label=ci" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/iamrohithrnair/merman?style=flat-square&color=cba6f7" alt="License"></a>
-  <img src="https://img.shields.io/badge/Claude%20Code-2.1.287%2B-cba6f7?style=flat-square" alt="Claude Code 2.1.287 or later">
+  <img src="https://img.shields.io/badge/Claude%20Code-2.1.311%2B-cba6f7?style=flat-square" alt="Claude Code 2.1.311 or later">
 </p>
 
 <p align="center">
@@ -31,7 +31,7 @@
 
 ## Install
 
-Requires Claude Code **2.1.287** or later.
+Requires Claude Code **2.1.311** or later.
 
 1. Clone the repo anywhere you keep code:
 
@@ -407,7 +407,7 @@ A color is hex (`#a6e3a1`, `#fc0`), `rgb(166,227,161)`, `ansi256(114)` or a name
 To change the code, read [AGENTS.md](AGENTS.md) instead.
 
 - **What it is:** a Claude Code mod (function hooks in TypeScript) that redraws assistant replies, slash-command output, tool rows (opt-in with `toolRows`), the turn footer and user prompts. It changes how things look, and with `diagramHints` on (the default) it also asks Claude to build a reply around pictures when they make it easier to grasp, with the core on the first screen as a picture or a sentence. The one thing it sends the model is the optional diagram hint below.
-- **Install:** symlink a checkout of this repo to `~/.claude/skills/merman` (`$CLAUDE_CONFIG_DIR/skills/merman` when that is set). It loads in place as `merman@skills-dir`, with no install command. Needs Claude Code 2.1.287+. Changes, including a `git pull`, apply after `/reload-plugins`.
+- **Install:** symlink a checkout of this repo to `~/.claude/skills/merman` (`$CLAUDE_CONFIG_DIR/skills/merman` when that is set). It loads in place as `merman@skills-dir`, with no install command. Needs Claude Code 2.1.311+. Changes, including a `git pull`, apply after `/reload-plugins`.
 - **Configure:** `/merman theme <name>` and `/merman setup` set options at runtime. Every option is a key under `pluginConfigs["merman@skills-dir"].options` in `~/.claude/settings.json` (or a row in `/config`), then `/reload`. Options and defaults are in the [Configure](#configure) table; the machine-readable source is `userConfig` in [.claude-plugin/plugin.json](.claude-plugin/plugin.json). Color values that don't parse are ignored.
 - **Side effects:** no network. Programs it runs: the `⧉ html` and `▣ png` clipboard helper (`/usr/bin/osascript` on macOS, `powershell.exe` on Windows, `copyq` on Linux for `⧉ html` only, 5 second timeout, 15 on Windows, only on a click), and `ratex-render` while `latex` is on. With `diagramHints` on, it adds about 355 tokens of model-only context (about 410 while `latex` is on) once per conversation, to the first prompt you type or another plugin sends, and again after a compaction drops it, as broken down under [Diagram hints](#diagram-hints).
 - **Turning it off:** `"enabled": false`, or disable the plugin in `/plugin`.
