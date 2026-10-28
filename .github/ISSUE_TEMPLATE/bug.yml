@@ -1,0 +1,35 @@
+name: Bug report
+description: Something renders wrong or not at all
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Claude Code version
+      description: Output of `claude --version`
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where
+      options: [Terminal, Desktop app, VS Code, Mobile]
+    validations:
+      required: true
+  - type: input
+    id: terminal
+    attributes:
+      label: Terminal and OS
+      placeholder: Ghostty on macOS 15, Windows Terminal, ...
+  - type: textarea
+    id: markdown
+    attributes:
+      label: The markdown that rendered wrong
+      description: Paste the raw reply text. ctrl+o in Claude Code shows the original.
+      render: markdown
+    validations:
+      required: true
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot

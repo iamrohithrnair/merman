@@ -1,0 +1,167 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        claude: [latest]
+        include:
+          - os: ubuntu-latest
+            claude: 2.1.287
+    name: test (${{ matrix.os }}, claude ${{ matrix.claude }})
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - run: npm install -g @anthropic-ai/claude-code@${{ matrix.claude }}
+      - run: claude plugin validate .
+      - run: claude plugin test .
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - run: npm install -g @anthropic-ai/claude-code@2.1.294
+      - name: Lay the mod API types
+        run: claude --plugin-dir . -p hi || test -d .claude-plugin/types/claude-code
+      - run: npx --yes -p typescript@5.9.3 tsc -p .
+
+  vendor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: scripts/package-lock.json
+      - run: npm ci --ignore-scripts
+        working-directory: scripts
+      - name: Bundle matches its source and holds only MIT packages
+        run: npm --prefix scripts run build:vendor && git diff --exit-code hooks/vendor
+      - name: Render snapshots match
+        run: npm --prefix scripts run snapshot
+      - name: Node counts stay within baseline (timings reported, not gated)
+        run: npm --prefix scripts run bench:check -- --no-time
+      - name: Cognitive complexity stays within baseline
+        run: npm --prefix scripts run complexity:check
+      - name: Bundles stay light
+        run: |
+          size=$(cat hooks/vendor/*.js | wc -c)
+          echo "vendor bytes: $size"
+          test "$size" -lt 300000
+
+  clipboard:
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-26.04, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts
+        working-directory: scripts
+      - run: npm --prefix scripts run clipboard:check
+      - name: Install Linux clipboard tools and isolated displays
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends wl-clipboard xclip xvfb xauth sway libxcb-cursor0 libxkbcommon-x11-0 libegl1 libopengl0
+      - name: Install CopyQ
+        if: runner.os == 'Linux'
+        env:
+          COPYQ_URL: https://github.com/hluk/CopyQ/releases/download/v17.0.0/CopyQ-17.0.0-x86_64.AppImage
+          COPYQ_SHA256: b63fb78eed3300af61ce2db7bf537bf12160ef86c7122147fc1c3cceb826c0d1
+        run: |
+          curl --fail --location --retry 3 -o "$RUNNER_TEMP/copyq.AppImage" "$COPYQ_URL"
+          echo "$COPYQ_SHA256  $RUNNER_TEMP/copyq.AppImage" | sha256sum --check --strict
+          chmod +x "$RUNNER_TEMP/copyq.AppImage"
+          cd "$RUNNER_TEMP"
+          ./copyq.AppImage --appimage-extract > /dev/null
+          ln -s AppRun squashfs-root/copyq
+          echo "$RUNNER_TEMP/squashfs-root" >> "$GITHUB_PATH"
+          ./squashfs-root/copyq --version
+      - name: Verify HTML and plain text on Wayland and X11
+        if: runner.os == 'Linux'
+        run: dbus-run-session -- xvfb-run -a node scripts/clipboard-linux-check.mjs
+
+  conventions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Released CHANGELOG sections match their tags
+        run: |
+          fail=0
+          for v in $(grep -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' docs/CHANGELOG.md | tr -d '#[] '); do
+            old=$(git show "v$v:docs/CHANGELOG.md" 2>/dev/null) || continue
+            sec() { awk -v h="## [$v]" 'index($0, h) == 1 { p = 1; print; next } p && /^## \[/ { exit } p'; }
+            if ! diff <(printf '%s\n' "$old" | sec) <(sec < docs/CHANGELOG.md); then
+              echo "::error file=docs/CHANGELOG.md::## [$v] differs from tag v$v. Released sections never change; the release commit writes new ones."
+              fail=1
+            fi
+          done
+          exit $fail
+      - name: Versions agree
+        run: |
+          v=$(jq -r .version .claude-plugin/plugin.json)
+          c=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' docs/CHANGELOG.md | tr -d '#[] ')
+          echo "plugin=$v changelog=$c"
+          test "$v" = "$c"
+      - name: Lockfile pins no registry
+        run: "! grep -q '\"resolved\"' scripts/package-lock.json"
+      - name: Hooks never use the network
+        run: "! grep -rnE 'fetch\\(|XMLHttpRequest|WebSocket' hooks"
+      - name: No code comments
+        run: "! grep -rnE '^\\s*//|/\\*' --include='*.ts' --include='*.tsx' hooks tests --exclude-dir=vendor"
+
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - run: npm install -g @anthropic-ai/claude-code@latest
+      - name: Loads from the skills folder of a clean config
+        env:
+          CLAUDE_CONFIG_DIR: ${{ runner.temp }}/claude
+        run: |
+          mkdir -p "$CLAUDE_CONFIG_DIR/skills"
+          ln -s "$PWD" "$CLAUDE_CONFIG_DIR/skills/merman"
+          claude plugin list --json | jq -e '.[] | select(.id == "merman@skills-dir" and .enabled)'

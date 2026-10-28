@@ -1,0 +1,22 @@
+{
+  "name": "merman",
+  "private": true,
+  "type": "module",
+  "description": "Dev tooling only. The mod itself has no runtime dependencies.",
+  "scripts": {
+    "clipboard:check": "node clipboard-copyq-check.mjs && node clipboard-check.mjs && node clipboard-windows-check.mjs",
+    "build:vendor": "node build-vendor.mjs",
+    "bench": "node bench.mjs",
+    "bench:check": "node bench.mjs --check",
+    "snapshot": "node snapshot.mjs",
+    "snapshot:update": "node snapshot.mjs --update",
+    "complexity:check": "node complexity.mjs",
+    "complexity:update": "node complexity.mjs --update"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "beautiful-mermaid": "1.1.3",
+    "esbuild": "0.28.2",
+    "prismjs": "1.30.0"
+  }
+}

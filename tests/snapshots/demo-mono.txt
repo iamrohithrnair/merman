@@ -1,0 +1,467 @@
+<Box border=bold>
+  <Text bold>
+    "merman"
+<Text>
+  <Text bold>
+    "Furious Five status:"
+  " Mantis cleared 3 dumplings in 6m 20s, kick power up 18% to 82 kicks/min. Notes in ~/jade-palace/training.md, scroll at "
+  <Text>
+    <Link>
+<Text>
+  "Type /kick to start; /srv/dojo/moves.md has the moves."
+<Box>
+  <Text bold>
+    "Roster"
+  <Text>
+    "━━━━━━"
+<Box>
+  <Text>
+    <Text>
+      "┌───────────────┬─────────────────────────┬───────────────────────┬───────┐
+│ "
+    <Text bold>
+      "Mantis"
+    "       "
+    <Text>
+      " │ "
+    <Text bold>
+      "Movie"
+    "                  "
+    <Text>
+      " │ "
+    <Text bold>
+      "Superpower"
+    "           "
+    <Text>
+      " │ "
+    " "
+    <Text bold>
+      "Size"
+    <Text>
+      " │
+╞═══════════════╪═════════════════════════╪═══════════════════════╪═══════╡
+│ "
+    "Mantis       "
+    <Text>
+      " │ "
+    "Kung Fu Panda          "
+    <Text>
+      " │ "
+    "acupuncture kicks    "
+    <Text>
+      " │ "
+    "  5cm"
+    <Text>
+      " │
+├───────────────┼─────────────────────────┼───────────────────────┼───────┤
+│ "
+    "Mantis       "
+    <Text>
+      " │ "
+    "Guardians of the Galaxy"
+    <Text>
+      " │ "
+    "empathy, awkward hugs"
+    <Text>
+      " │ "
+    "168cm"
+    <Text>
+      " │
+├───────────────┼─────────────────────────┼───────────────────────┼───────┤
+│ "
+    "mantis shrimp"
+    <Text>
+      " │ "
+    "real life              "
+    <Text>
+      " │ "
+    "punches at 23 m/s    "
+    <Text>
+      " │ "
+    " 10cm"
+    <Text>
+      " │
+└───────────────┴─────────────────────────┴───────────────────────┴───────┘"
+<Box>
+  <Box row>
+    <Text>
+      "1. "
+    <Text>
+      "Wake up, stretch all 6 legs"
+  <Box row>
+    <Text>
+      "2. "
+    <Text>
+      "Pray to the noodle gods"
+  <Box row>
+    <Text>
+      "◦ "
+    <Text>
+      "extra dumplings"
+  <Box row>
+    <Text>
+      "◦ "
+    <Text>
+      "no tofu"
+<Box row>
+  <Box>
+    <Box>
+      <Text>
+        "┌────┐   ┌─────────┐   ┌──────────┐   ┌─────────┐"
+      <Text>
+        "│ Po ├──►│ Noodles ├──►│ Training ├──►│  Mantis │"
+      <Text>
+        "└────┘   └─────────┘   └─────┬────┘   └─────────┘"
+      <Text>
+        "                             │        ┌─────────┐"
+      <Text>
+        "                             └───────►│ Tigress │"
+      <Text>
+        "                                      └─────────┘"
+  <Box>
+    <Box>
+      <Text>
+        "┌────────┐            ┌──────┐"
+      <Text>
+        "│ Shrimp │            │ Crab │"
+      <Text>
+        "└────┬───┘            └───┬──┘"
+      <Text>
+        "     │  punch at 23 m/s   │"
+      <Text>
+        "     │────────────────────►"
+      <Text>
+        "     │        why         │"
+      <Text>
+        "     ◄────────────────────│"
+      <Text>
+        "     │  I see 16 colors   │"
+      <Text>
+        "     │╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌►"
+      <Text>
+        "┌────┴───┐            ┌───┴──┐"
+      <Text>
+        "│ Shrimp │            │ Crab │"
+      <Text>
+        "└────────┘            └──────┘"
+  <Box>
+    <Box>
+      <Text>
+        "           Color receptors"
+      <Text>
+        " "
+      <Text>
+        " 18┤···························16···"
+      <Text>
+        " 16┤·························▄▄▄▄▄▄·"
+      <Text>
+        " 14┤·························██████·"
+      <Text>
+        " 12┤·························██████·"
+      <Text>
+        " 10┤·························██████·"
+      <Text>
+        "  8┤·························██████·"
+      <Text>
+        "  6┤····················4····██████·"
+      <Text>
+        "  4┤····2·······3····▄▄▄▄▄▄··██████·"
+      <Text>
+        "  2┤·▄▄▄▄▄▄··██████··██████··██████·"
+      <Text>
+        "  0┼─▀▀▀▀▀▀──▀▀▀▀▀▀──▀▀▀▀▀▀──▀▀▀▀▀▀─"
+      <Text>
+        "       Dog    Human  Pigeon  Shrimp"
+  <Box>
+    <Box>
+      <Text>
+        "      Mantis hug acceptance"
+      <Text>
+        " "
+      <Text>
+        " 10┤····························"
+      <Text>
+        "   │                     ╭────"
+      <Text>
+        "  8┤·····················│······"
+      <Text>
+        "   │                     │"
+      <Text>
+        "  6┤··············╭──────╯······"
+      <Text>
+        "   │              │"
+      <Text>
+        "  4┤·······╭──────╯·············"
+      <Text>
+        "   │       │"
+      <Text>
+        "  2┤··─────╯····················"
+      <Text>
+        "   │"
+      <Text>
+        "  0┼───┬──────┬──────┬──────┬───"
+      <Text>
+        "     GotG2   IW     EG    GotG3"
+  <Box>
+    <Box>
+      <Text>
+        "┌───────┐   ┌──────┐"
+      <Text>
+        "│ "
+        <Text italic>
+          "Reply"
+        " ├──►│ "
+        <Text bold>
+          "Draw"
+        " │"
+      <Text>
+        "└───────┘   └──────┘"
+<Box>
+  <Text>
+    "diagram is 180 cols, terminal is 100"
+  <Box row>
+    <Text>
+      "── mermaid"
+  <Box>
+    <Text>
+      "flowchart TD"
+    <Text>
+      "  Q[Queue] --> W1[Worker 1] & W2[Worker 2] & W3[Worker 3] & W4[Worker 4] & W5[Worker 5] & W6[Worker 6] & W7[Worker 7] & W8[Worker 8] & W9[Worker 9] & W10[Worker 10] & W11[Worker 11] & W12[Worker 12]"
+<Box>
+  <Text>
+    <Text>
+      "timeout at 10 s, handler books at 12 s, retry books again"
+  <Text>
+    <Text>
+      "          "
+    <Text>
+      "0 s"
+    <Text>
+      "           "
+    <Text>
+      "10 s"
+    <Text>
+      "  "
+    <Text>
+      "12 s"
+    <Text>
+      "              "
+    <Text>
+      "later"
+  <Text>
+    <Text>
+      "          "
+    <Text>
+      "▏─────────────▏─────▏─────────────────▏"
+  <Text>
+    <Text>
+      "Provider  "
+    <Text>
+      "██████████████"
+    <Text bold>
+      "✗"
+    <Text>
+      " timeout               "
+    <Text>
+      "█"
+    <Text>
+      " retry"
+  <Text>
+    <Text>
+      "Handler   "
+    <Text>
+      "████████████████████"
+    <Text>
+      " 200, nobody waits"
+  <Text>
+    <Text>
+      "Bookings  0                   "
+    <Text>
+      "1"
+    <Text>
+      "                 "
+    <Text bold>
+      "2 twice"
+<Box>
+  <Box row>
+    <Text>
+      "── ts"
+  <Box>
+    <Text>
+      "const master = "Shifu" "
+      <Text italic>
+        "// wise, short"
+    <Text>
+      "export function train(student: string, dumplings = 3) {"
+    <Text>
+      "  return `${student} ate ${dumplings} dumplings`"
+    <Text>
+      "}"
+<Box>
+  <Box row>
+    <Text>
+      "── bash"
+  <Box>
+    <Text>
+      "kungfu train --student "Po" --master shifu --dumplings 3 && echo "skadoosh""
+<Box border=round>
+  <Text color=green bold>
+    "Tip"
+  <Box>
+    <Text>
+      "If inner peace returns 404, try snacks first."
+<Box row>
+  <Box>
+    <Box>
+      <Text>
+        "│ 
+│ 
+│ 
+│ 
+│ "
+  <Box>
+    <Text italic>
+      "Mantis wisdom: small bug, big kick."
+    <Box>
+      <Box row>
+        <Text>
+          "• "
+        <Text italic>
+          "stretch all "
+          <Text bold>
+            "6"
+          " legs"
+      <Box row>
+        <Text>
+          "• "
+        <Text italic>
+          "then kick"
+<Text>
+  <Text>
+    "<tldr>"
+<Text>
+  "Kick at ~/dojo/mat, then rest."
+<Text>
+  <Text>
+    "</tldr>"
+<Box>
+  <Box>
+    <Text bold>
+      "תירבע"
+    <Text>
+      "━━━━━"
+<Box>
+  <Text>
+    "."
+    <Link>
+      <Text>
+        "רושיק"
+    " םגו ,250ms-ו 99.9% ומכ םירפסמ ,kubectl ומכ תילגנאב םיחנומ םע תירבע םג רייצמ ףסותה ,"
+    <Text bold>
+      "םירבח םולש"
+<Box>
+  <Box row>
+    <Box>
+      <Text>
+        "(םירוזא ינש) eu-west-ו us-east-ב םיסורפ"
+    <Text>
+      " •"
+  <Box row>
+    <Box>
+      <Text>
+        "/merman theme nord םע אשונ תכרע םיפילחמ"
+    <Text>
+      " •"
+<Box>
+  <Box row>
+    <Box>
+      <Text>
+        "םיילגרה 6 לכ תא םיחתומו םיררועתמ"
+    <Text>
+      " .1"
+  <Box row>
+    <Box>
+      <Text>
+        "סלדונה ילאל םיללפתמ"
+    <Text>
+      " .2"
+<Box row>
+  <Box>
+    <Box>
+      <Text italic>
+        "תוינוויכב הכימת ילב לנימרטב םג ,לאמשל ןימימ תארקנ תירבע"
+  <Text>
+    " │"
+<Box>
+  <Text>
+    "┌────────────────┬──────────────┬───────┐"
+  <Box row>
+    <Text>
+      "│ "
+    <Box>
+      <Text bold>
+        "לע חוכ"
+    <Text>
+      " │ "
+    <Box>
+      <Text bold>
+        "טרס"
+    <Text>
+      " │ "
+    <Box>
+      <Text bold>
+        "םחול"
+    <Text>
+      " │"
+  <Text>
+    "╞════════════════╪══════════════╪═══════╡"
+  <Box row>
+    <Text>
+      "│ "
+    <Box>
+      <Text>
+        "רוקיד תוטיעב"
+    <Text>
+      " │ "
+    <Box>
+      <Text>
+        "הדנפ ופ גנוק"
+    <Text>
+      " │ "
+    <Box>
+      <Text>
+        "סיטנמ"
+    <Text>
+      " │"
+  <Text>
+    "├────────────────┼──────────────┼───────┤"
+  <Box row>
+    <Text>
+      "│ "
+    <Box>
+      <Text>
+        "23 m/s-ב ףורגא"
+    <Text>
+      " │ "
+    <Box>
+      <Text>
+        "תואיצמ"
+    <Text>
+      " │ "
+    <Box>
+      <Text>
+        "פמירש"
+    <Text>
+      " │"
+  <Text>
+    "└────────────────┴──────────────┴───────┘"
+<Box>
+  <Box row>
+    <Text>
+      "── bash"
+  <Box>
+    <Text>
+      <Text>
+        "ls -la"
+      <Text>
+        " # םיצבקה תמישר"

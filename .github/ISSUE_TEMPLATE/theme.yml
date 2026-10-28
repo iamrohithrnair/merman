@@ -1,0 +1,23 @@
+name: Theme submission
+description: Share a palette for the built-in themes
+labels: [theme]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Theme name
+    validations:
+      required: true
+  - type: textarea
+    id: json
+    attributes:
+      label: customTheme JSON
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot
+    validations:
+      required: true

@@ -1,0 +1,336 @@
+{
+  "name": "merman",
+  "version": "0.36.0",
+  "description": "Colorful, themeable rendering for Claude Code replies: tables, headings, code, numbers, paths and links.",
+  "author": {
+    "name": "iamrohithrnair",
+    "url": "https://github.com/iamrohithrnair"
+  },
+  "homepage": "https://github.com/iamrohithrnair/merman",
+  "repository": "https://github.com/iamrohithrnair/merman",
+  "license": "MIT",
+  "keywords": [
+    "mod",
+    "theme",
+    "markdown",
+    "tables",
+    "colors",
+    "terminal"
+  ],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "enabled": {
+      "type": "boolean",
+      "title": "Enabled",
+      "description": "Draw replies with this mod. Off falls back to Claude Code's own renderer.",
+      "default": true
+    },
+    "theme": {
+      "type": "string",
+      "title": "Theme",
+      "description": "Base palette, from popular MIT-licensed themes. Light variants: catppuccin-latte, gruvbox-light, rose-pine-dawn, github-light, solarized-light. mono uses bold and dim only. random picks a dark color preset each time the mod loads (session start or reload).",
+      "default": "catppuccin-mocha",
+      "options": [
+        "catppuccin-mocha",
+        "catppuccin-latte",
+        "dracula",
+        "nord",
+        "tokyo-night",
+        "gruvbox-dark",
+        "gruvbox-light",
+        "rose-pine",
+        "rose-pine-dawn",
+        "everforest",
+        "github-dark",
+        "github-light",
+        "one-dark",
+        "solarized-dark",
+        "solarized-light",
+        "neon",
+        "mono",
+        "random"
+      ]
+    },
+    "headingStyle": {
+      "type": "string",
+      "title": "Heading style",
+      "description": "Terminals have one font size, so headings get weight instead: banner (a box around H1, a heavy rule under H2), bold, underline, or uppercase H1.",
+      "default": "banner",
+      "options": [
+        "bold",
+        "underline",
+        "uppercase",
+        "banner"
+      ]
+    },
+    "tableStyle": {
+      "type": "string",
+      "title": "Table style",
+      "description": "box: every cell boxed, with a double line under the header. rules: a rule under the header and between rows. grid: heavier header rule, wider gaps. minimal: header rule only.",
+      "default": "box",
+      "options": [
+        "box",
+        "rules",
+        "grid",
+        "minimal"
+      ]
+    },
+    "promptStyle": {
+      "type": "string",
+      "title": "Your prompt style",
+      "description": "How the prompts you type draw in the transcript. bubble: a rounded box in the accent color. wide: the same box across the full width, a divider between turns. bar: an accent bar on the left. chevron: a bold accent › before the text. off: Claude Code's own look.",
+      "default": "bubble",
+      "options": ["bubble", "wide", "bar", "chevron", "off"]
+    },
+    "clock": {
+      "type": "string",
+      "title": "Clock times",
+      "description": "Shows when you sent each prompt and when each turn finished. 24h: 14:32. 12h: 2:32 PM. A time from another day gets its date. off: no times.",
+      "default": "off",
+      "options": ["off", "24h", "12h"]
+    },
+    "toolStyle": {
+      "type": "string",
+      "title": "Tool row style",
+      "description": "How tool rows (Ran, Read, Edited) sit next to Claude's sentences. chat: tool rows dimmed on the right, Claude on the left. tree-dim: tucked under the sentence with ⎿ and dimmed. tree-bold: tree-dim plus one-line sentences in bold. classic: the original look.",
+      "default": "chat",
+      "options": ["chat", "tree-dim", "tree-bold", "classic"]
+    },
+    "toolOutput": {
+      "type": "string",
+      "title": "Tool output",
+      "description": "How much of a tool call shows. full: what Claude Code shows. quiet: rows say in plain words what a call did, reads, searches and listings show only their row, other shell commands show their first lines, edits keep their diff, a failed call shows the last line of its error, and a refused call its full reason. Needs toolRows on.",
+      "default": "full",
+      "options": ["full", "quiet"]
+    },
+    "taskStyle": {
+      "type": "string",
+      "title": "Task list style",
+      "description": "How - [ ] and - [x] items draw. checks: [ ] and [✓] with done items dimmed and struck through. ticks: ○ and ✓, done items dimmed. box: □ and ✓, done items dimmed and struck through. progress: ticks with a done-count bar above each list.",
+      "default": "checks",
+      "options": ["checks", "ticks", "box", "progress"]
+    },
+    "rtl": {
+      "type": "string",
+      "title": "Right-to-left terminal",
+      "description": "Hebrew and Arabic get a right-to-left layout (right aligned, bullets and quote bars on the right, tables mirrored), with the letters sent the way your terminal needs them. auto detects the terminal; pick one to force its handling, or off for none.",
+      "default": "auto",
+      "options": [
+        "auto",
+        "warp",
+        "kitty",
+        "apple-terminal",
+        "iterm",
+        "ghostty",
+        "wezterm",
+        "vscode",
+        "alacritty",
+        "windows-terminal",
+        "gnome",
+        "konsole",
+        "off"
+      ]
+    },
+    "highlightNumbers": {
+      "type": "boolean",
+      "title": "Highlight numbers",
+      "description": "Color versions, IDs, counts and durations in prose and tables.",
+      "default": true
+    },
+    "highlightPaths": {
+      "type": "boolean",
+      "title": "Highlight paths",
+      "description": "Color file paths like ~/src/app.ts or /var/log.",
+      "default": true
+    },
+    "accentColor": {
+      "type": "string",
+      "title": "Accent",
+      "description": "Color for the reply bullet, H3+ headings and quote bars. Hex (#a6e3a1), rgb(166,227,161), ansi256(114) or a name (green). Empty uses the theme.",
+      "default": ""
+    },
+    "headingColor": {
+      "type": "string",
+      "title": "Heading",
+      "description": "Color for H1 and H2 headings. Hex (#a6e3a1), rgb(166,227,161), ansi256(114) or a name (green). Empty uses the theme.",
+      "default": ""
+    },
+    "tableHeaderColor": {
+      "type": "string",
+      "title": "Table header",
+      "description": "Color for table header cells. Hex (#a6e3a1), rgb(166,227,161), ansi256(114) or a name (green). Empty uses the theme.",
+      "default": ""
+    },
+    "tableRuleColor": {
+      "type": "string",
+      "title": "Table rule",
+      "description": "Color for table rules. Hex (#a6e3a1), rgb(166,227,161), ansi256(114) or a name (green). Empty uses the theme.",
+      "default": ""
+    },
+    "numberColor": {
+      "type": "string",
+      "title": "Numbers",
+      "description": "Color for versions, IDs and counts. Hex (#a6e3a1), rgb(166,227,161), ansi256(114) or a name (green). Empty uses the theme.",
+      "default": ""
+    },
+    "pathColor": {
+      "type": "string",
+      "title": "Paths",
+      "description": "Color for file paths. Hex (#a6e3a1), rgb(166,227,161), ansi256(114) or a name (green). Empty uses the theme.",
+      "default": ""
+    },
+    "linkColor": {
+      "type": "string",
+      "title": "Links",
+      "description": "Color for links and URLs. Hex (#a6e3a1), rgb(166,227,161), ansi256(114) or a name (green). Empty uses the theme.",
+      "default": ""
+    },
+    "inlineCodeColor": {
+      "type": "string",
+      "title": "Inline code",
+      "description": "Color for `inline code`. Hex (#a6e3a1), rgb(166,227,161), ansi256(114) or a name (green). Empty uses the theme.",
+      "default": ""
+    },
+    "codeCommandColor": {
+      "type": "string",
+      "title": "Code command",
+      "description": "Color for the command word in shell blocks. Hex (#a6e3a1), rgb(166,227,161), ansi256(114) or a name (green). Empty uses the theme.",
+      "default": ""
+    },
+    "codeFlagColor": {
+      "type": "string",
+      "title": "Code flag",
+      "description": "Color for --flags in shell blocks. Hex (#a6e3a1), rgb(166,227,161), ansi256(114) or a name (green). Empty uses the theme.",
+      "default": ""
+    },
+    "codeStringColor": {
+      "type": "string",
+      "title": "Code string",
+      "description": "Color for quoted strings in shell blocks. Hex (#a6e3a1), rgb(166,227,161), ansi256(114) or a name (green). Empty uses the theme.",
+      "default": ""
+    },
+    "strongColor": {
+      "type": "string",
+      "title": "Bold text",
+      "description": "Color for **bold** text. Hex (#a6e3a1), rgb(166,227,161), ansi256(114) or a name (green). Empty uses the theme.",
+      "default": ""
+    },
+    "quoteColor": {
+      "type": "string",
+      "title": "Quote",
+      "description": "Color for block quotes. Hex (#a6e3a1), rgb(166,227,161), ansi256(114) or a name (green). Empty uses the theme.",
+      "default": ""
+    },
+    "mermaidAscii": {
+      "type": "boolean",
+      "title": "Mermaid ASCII only",
+      "description": "Draw diagrams with + - | > instead of box-drawing characters, for fonts without them.",
+      "default": false
+    },
+    "diagramColor": {
+      "type": "string",
+      "title": "Diagram lines",
+      "description": "Color for diagram boxes and arrows. Hex, rgb(), ansi256() or a name. Empty uses the theme.",
+      "default": ""
+    },
+    "diagramTextColor": {
+      "type": "string",
+      "title": "Diagram text",
+      "description": "Color for diagram labels and LaTeX formulas. Hex, rgb(), ansi256() or a name. Empty uses the theme.",
+      "default": ""
+    },
+    "toolRows": {
+      "type": "boolean",
+      "title": "Tool rows",
+      "description": "Draw tool calls as one compact line: Ran gh pr view 12, Read ~/src/app.ts, Edited README.md. Results still draw below as usual.",
+      "default": true
+    },
+    "emphasisColor": {
+      "type": "string",
+      "title": "Italic text",
+      "description": "Color for *italic* text. Hex, rgb(), ansi256() or a name. Empty uses the theme.",
+      "default": ""
+    },
+    "codeTextColor": {
+      "type": "string",
+      "title": "Code text",
+      "description": "Color for code block text. Hex, rgb(), ansi256() or a name. Empty uses the theme.",
+      "default": ""
+    },
+    "codeCommentColor": {
+      "type": "string",
+      "title": "Code comment",
+      "description": "Color for # comments in shell blocks. Hex, rgb(), ansi256() or a name. Empty uses the theme.",
+      "default": ""
+    },
+    "ruleColor": {
+      "type": "string",
+      "title": "Rules",
+      "description": "Color for horizontal rules, diff card borders and chart gridlines. Hex, rgb(), ansi256() or a name. Empty uses the theme.",
+      "default": ""
+    },
+    "bulletColor": {
+      "type": "string",
+      "title": "Bullets",
+      "description": "Color for list bullets and numbers. Hex, rgb(), ansi256() or a name. Empty uses the theme.",
+      "default": ""
+    },
+    "diffAddedColor": {
+      "type": "string",
+      "title": "Diff added",
+      "description": "Color for added diff lines: their + marks and count, and in hex the tint behind them, mixed into black or white so code text stays at 4.5:1. Hex, rgb(), ansi256() or a name. Empty uses the theme's green.",
+      "default": ""
+    },
+    "diffRemovedColor": {
+      "type": "string",
+      "title": "Diff removed",
+      "description": "Color for removed diff lines: their - marks and count, and in hex the tint behind them, mixed into black or white so code text stays at 4.5:1. Hex, rgb(), ansi256() or a name. Empty uses the theme's red.",
+      "default": ""
+    },
+    "diffStyle": {
+      "type": "string",
+      "title": "Diff style",
+      "description": "How edit and shell edit diffs draw. card: a rounded box with tinted lines. full: no box, each changed line tinted across the width. marks: no box and no tint, only the +/- marks in the theme's diff colors. bar: no box and no tint, a colored ▌ before each changed line. Every style highlights the code and marks the changed words.",
+      "default": "card",
+      "options": ["card", "full", "marks", "bar"]
+    },
+    "pieStyle": {
+      "type": "string",
+      "title": "Pie style",
+      "description": "How mermaid pie charts draw. round: a circle with a legend, falling back to bars in ascii mode, with more slices than the theme has distinct colors (mono always) or in a narrow terminal. bars: one bar per slice, largest first, with its share.",
+      "default": "round",
+      "options": ["round", "bars"]
+    },
+    "mermaid": {
+      "type": "boolean",
+      "title": "Mermaid diagrams",
+      "description": "Draw ```mermaid blocks as colored box art sized to the terminal. Off leaves the code as written.",
+      "default": true
+    },
+    "copyButtons": {
+      "type": "boolean",
+      "title": "Copy buttons",
+      "description": "Put a copy button on code blocks, tables, diagrams, lists and quotes. Reach them with ctrl+x tab then Enter, or click where the terminal passes clicks through.",
+      "default": true
+    },
+    "copyButtonStyle": {
+      "type": "string",
+      "title": "Copy button style",
+      "description": "inline: buttons beside or above each block, always shown. hover: each block shows a dim ⧉ beside its first row, and the reply one in its bottom-right corner; the pointer on a ⧉ draws its buttons over it, so they take no line; ctrl+x tab does not reach them, and the mobile app, which has no pointer, shows them inline. Needs copyButtons on.",
+      "default": "inline",
+      "options": ["inline", "hover"]
+    },
+    "diagramHints": {
+      "type": "boolean",
+      "title": "Diagram hints",
+      "description": "Attach a short note, read by the model and never shown, to the first prompt you type or another plugin sends in each conversation, and again after a compaction drops it, saying tables, code, mermaid diagrams, charts and figures render here, and LaTeX formulas once the renderer runs. About 355 tokens once per conversation (about 135 for the main part, about 220 for figures), about 55 more with LaTeX. Off when mermaid is off.",
+      "default": true
+    },
+    "latex": {
+      "type": "boolean",
+      "title": "LaTeX math",
+      "description": "Draw $$ and ```math formulas as typeset images in kitty and Ghostty (not under tmux) with RaTeX's renderer, installed as ratex-render on your PATH. Off runs nothing. Formulas that can't be drawn stay as text.",
+      "default": false
+    }
+  }
+}
