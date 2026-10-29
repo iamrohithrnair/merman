@@ -15,6 +15,7 @@ The visual test. Unit tests prove the tree; this proves the look.
    - the four diagrams and the table on one row on a wide terminal, wrapping on a narrow one
    - every flowchart box and sequence participant in its own color, with matching colors at both ends of the sequence
    - a value above each bar, the tallest bar highlighted and the rest muted, labels without quotes, dim gridlines, colored axis numbers
+   - the C4 diagram: `Shop` as a frame around `Orders` and `Ledger`, each box with its bold name and bracketed type (`[Container: Go]`), `Payments` and `[External Software System]` all in the comment color, lines numbered 1 to 3 that each start on one box and end in an arrowhead on another, and a legend under it reading `1  Baker → Orders  Uses`; pointing at a line lights its legend row
    - shell colors: command, flags, the quoted string, `&&`
    - code blocks with a language header and no frame, and Prism colors in the TypeScript block
    - path, link and inline-code colors, the paths opening their files on click in a terminal that draws hyperlinks while `/kick` stays unlinked text, the quote bar running down its paragraph and both list rows, and the green `Tip` alert box

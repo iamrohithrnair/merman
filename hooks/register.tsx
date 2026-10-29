@@ -473,7 +473,7 @@ const drawMarkdown = ($: EngineInterface, el: ReturnType<EngineInterface['ui']['
       />
     ) : null
   }
-  const drawn = withViewers(el, style, drawDiagrams(el, style, blocks, columns - markerRoom(style)), columns - markerRoom(style))
+  const drawn = withViewers(el, style, drawDiagrams(el, notes ? { ...style, noteKey: instanceKey(notes.id) } : style, blocks, columns - markerRoom(style)), columns - markerRoom(style))
   const Image = 'Image' in el ? el.Image : null
   if (Image) {
     for (const [i, formula] of math) {

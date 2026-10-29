@@ -55,6 +55,20 @@ flowchart TD
   Q[Queue] --> W1[Worker 1] & W2[Worker 2] & W3[Worker 3] & W4[Worker 4] & W5[Worker 5] & W6[Worker 6] & W7[Worker 7] & W8[Worker 8] & W9[Worker 9] & W10[Worker 10] & W11[Worker 11] & W12[Worker 12]
 ```
 
+```mermaid
+C4Container
+  title Bakery orders
+  Person(baker, "Baker")
+  System_Ext(pay, "Payments")
+  System_Boundary(shop, "Shop") {
+    Container(app, "Orders", "Go", "Takes orders")
+    ContainerDb(db, "Ledger", "SQLite")
+  }
+  Rel(baker, app, "Uses")
+  Rel(pay, app, "Confirms", "HTTPS")
+  Rel(app, db, "Writes")
+```
+
 ```figure
 {dim:timeout at 10 s, handler books at 12 s, retry books again}
           {note:0 s}           {note:10 s}  {note:12 s}              {note:later}

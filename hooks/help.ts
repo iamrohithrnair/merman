@@ -231,6 +231,33 @@ gantt
     Release  :milestone, 2026-10-12, 0d
 \`\`\`
 
+C4 draws its boxes with their type, boundaries as frames and outside systems in the comment color. Each relationship is a numbered line; point at one or at its legend row to light both:
+
+\`\`\`mermaid
+C4Container
+    title merman, containers
+    Person(you, "You")
+    System_Ext(model, "Claude", "Writes markdown")
+    System_Boundary(cc, "Claude Code") {
+        Container(mod, "merman", "TypeScript", "Redraws replies")
+        ContainerDb(cfg, "Options", "plugin.json")
+    }
+    Rel(model, mod, "Replies")
+    Rel(mod, cfg, "Reads")
+    Rel(mod, you, "Draws for")
+\`\`\`
+
+C4 written for C4-PlantUML draws the same from a \`plantuml\` block:
+
+\`\`\`plantuml
+@startuml
+!include <C4/C4_Context>
+Person(you, "You")
+System(mod, "merman", "Draws replies")
+Rel(you, mod, "Reads")
+@enduml
+\`\`\`
+
 A diagram wider than the terminal stays source, with a dim line saying why:
 
 \`\`\`mermaid

@@ -1,3 +1,4 @@
+import type { C4Paint } from './c4layout'
 import { graphemes, width } from './render'
 
 const DAY = 86400000
@@ -22,7 +23,7 @@ const pad = (text: string, size: number) => text + ' '.repeat(Math.max(0, size -
 
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n))
 
-export type ChartArt = { text: string; slices?: number[][]; series?: number[][] }
+export type ChartArt = { text: string; slices?: number[][]; series?: number[][]; c4?: C4Paint }
 
 const QUADRANTS = ' ▘▝▀▖▌▞▛▗▚▐▜▄▙▟█'
 

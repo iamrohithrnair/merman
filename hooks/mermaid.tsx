@@ -1,5 +1,9 @@
 import type { ElementTable, RenderElement } from 'claude-code'
 
+import { c4Model, isC4Kind, plantUmlC4 } from './c4'
+import { c4Colors, c4Element } from './c4draw'
+import type { C4Paint } from './c4layout'
+import { c4Layout } from './c4layout'
 import type { ChartArt } from './charts'
 import { ganttText, pieText } from './charts'
 import { drawFigure, isFigureLang } from './figure'
@@ -77,7 +81,7 @@ const kindOf = (source: string) => source.replace(/^(\s*%%[^\n]*\n)+/, '').trim(
 
 const unsupportedKind = (source: string): string | undefined => {
   const kind = kindOf(source)
-  return kind && !SUPPORTED.test(kind) ? kind : undefined
+  return kind && !SUPPORTED.test(kind) && !isC4Kind(kind) ? kind : undefined
 }
 
 const OWN: Record<string, typeof pieText> = {
@@ -105,12 +109,19 @@ const mermaidArt = (source: string, ascii: boolean, columns: number, pieColors: 
   remember(caches.fitted, `${ascii}:${columns}:${pieColors}:${source}`, () => {
     source = source.replace(INLINE_TAG, '')
     if (source.length > 8000 || source.split('\n').length > MAX_LINES) return null
+    if (isC4Kind(kindOf(source))) return c4Art(source, ascii, columns)
     const own = OWN[kindOf(source).toLowerCase()]
     if (own) return own(source, ascii, columns, pieColors)
     const art = draw(source, ascii, columns)
     const text = art === null || artWidth(art) <= columns - 2 || !SIDEWAYS.test(source) ? art : (draw(source.replace(SIDEWAYS, '$1TD'), ascii, columns) ?? art)
     return text === null ? null : { text, series: chartSeries(source, ascii, columns) }
   }, caches.limit)
+
+const c4Art = (source: string, ascii: boolean, columns: number): ChartArt | null => {
+  const model = c4Model(source)
+  const art = model && c4Layout(model, columns, ascii)
+  return art ? { text: art.text, c4: art.paint } : null
+}
 
 const prepared = (padded: string) => unquoteCategories(padded.replace(/^(\s*%%[^\n]*\n)+/, '')).replace(/(-->|-\.->|==>|---|-\.-|===)[ \t]+\|/g, '$1|')
 
@@ -254,7 +265,18 @@ const paintPie = (art: string, slices: number[][], style: Style): Painted => {
 
 const piePainted = new WeakMap<Theme, WeakMap<number[][], Painted>>()
 
-const painting = (style: Style, art: string, slices?: number[][], series?: number[][]): Painted => {
+const c4Painted = new WeakMap<Theme, WeakMap<C4Paint, Painted>>()
+
+const paintC4 = (style: Style, art: string, c4: C4Paint): Painted => {
+  const cache = c4Painted.get(style.theme) ?? new WeakMap<C4Paint, Painted>()
+  c4Painted.set(style.theme, cache)
+  const done = cache.get(c4) ?? { grid: art.split('\n').map(cells), colors: c4Colors(c4, style.theme, diagramPalette(style.theme)) }
+  cache.set(c4, done)
+  return done
+}
+
+const painting = (style: Style, art: string, slices?: number[][], series?: number[][], c4?: C4Paint): Painted => {
+  if (c4) return paintC4(style, art, c4)
   if (!slices) {
     const cache = caches.painted.get(style.theme) ?? new Map<string, Painted>()
     caches.painted.set(style.theme, cache)
@@ -294,8 +316,10 @@ const markedRow = (row: string[], marks: [string[], Mark][]): (Mark | undefined)
 
 const heldCells = (style: Style, row: string[], visual: boolean) => (mirrored(style) ? led(row, holdRow(row)) : style.shape === 'engine' ? holdEngine(row) : visual ? holdVisual(row) : undefined)
 
-export const boxArt = ({ Box, Text }: ElementTable, style: Style, art: string, key: string, marks: [string[], Mark][] = [], slices?: number[][], series?: number[][]): RenderElement => {
-  const { grid, colors } = painting(style, art, slices, series)
+export const boxArt = (el: ElementTable, style: Style, art: string, key: string, marks: [string[], Mark][] = [], slices?: number[][], series?: number[][], c4?: C4Paint): RenderElement => {
+  const { Box, Text } = el
+  const { grid, colors } = painting(style, art, slices, series, c4)
+  if (c4 && !mirrored(style) && style.shape !== 'engine') return c4Element(el, style.theme, grid, colors, c4, key, `${style.noteKey ?? ''}:${key}`)
   const visual = style.reorder && style.shape === 'visual' && hasRtl(art)
   return (
     <Box key={key} flexDirection="column" paddingLeft={mirrored(style) ? 0 : 2}>
@@ -322,11 +346,22 @@ export const shortenEdgeLabels = (source: string, max: number): string =>
 
 const pieColorsOf = (style: Style) => (style.pieStyle === 'round' ? diagramPalette(style.theme).length : 0)
 
+const PLANTUML = /^(plantuml|puml)$/i
+
+const sourceOf = (block: Extract<Block, { kind: 'code' }>): string | undefined => {
+  const text = block.lines.join('\n')
+  if (block.lang.toLowerCase() === 'mermaid') return text
+  return PLANTUML.test(block.lang) ? plantUmlC4(text) : undefined
+}
+
 type Diagram = NonNullable<ReturnType<Drawn['get']>>
+
+const waitsForFence = (block: Extract<Block, { kind: 'code' }>, source: string) => block.isOpen && isC4Kind(kindOf(source))
 
 const diagramOf = (el: ElementTable, style: Style, block: Extract<Block, { kind: 'code' }>, columns: number, key: string): Diagram | undefined => {
   caches = block.isOpen ? UNFINISHED : FINISHED
-  const source = block.lines.join('\n')
+  const source = sourceOf(block)!
+  if (waitsForFence(block, source)) return undefined
   const pieColors = pieColorsOf(style)
   let narrowest = Infinity
   let full: ChartArt | null = null
@@ -335,7 +370,7 @@ const diagramOf = (el: ElementTable, style: Style, block: Extract<Block, { kind:
     if (max === Infinity) full = art
     const wide = art === null ? Infinity : artWidth(art.text)
     narrowest = Math.min(narrowest, wide)
-    if (art !== null && wide <= columns - 2) return { element: boxArt(el, style, art.text, key, inlineMarks(source), art.slices, art.series), art: art.text }
+    if (art !== null && wide <= columns - 2) return { element: boxArt(el, style, art.text, key, inlineMarks(source), art.slices, art.series, art.c4), art: art.text }
   }
   return block.isOpen ? undefined : { note: noteOf(source, narrowest, columns), ...(full ? { full } : {}) }
 }
@@ -358,7 +393,7 @@ const viewerRow = (row: string[], hues: (string | undefined)[], index: (hue?: st
 }
 
 export const viewerProps = (style: Style, art: ChartArt, view: number): ViewerProps => {
-  const { grid, colors } = painting(style, art.text, art.slices, art.series)
+  const { grid, colors } = painting(style, art.text, art.slices, art.series, art.c4)
   const palette: string[] = []
   const index = (hue?: string) => (hue ? (palette.includes(hue) ? palette.indexOf(hue) : palette.push(hue) - 1) : -1)
   const t = style.theme
@@ -369,7 +404,7 @@ export const drawDiagrams = (el: ElementTable, style: Style, blocks: Block[], co
   const drawn: Drawn = new Map()
   if (style.mermaid) {
     for (const [i, block] of blocks.entries()) {
-      if (block.kind !== 'code' || block.lang.toLowerCase() !== 'mermaid') continue
+      if (block.kind !== 'code' || sourceOf(block) === undefined) continue
       const diagram = diagramOf(el, style, block, columns, `b${i}`)
       if (diagram) drawn.set(i, diagram)
     }
