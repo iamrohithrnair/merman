@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.2.1] - 2026-10-29
+
+### Changed
+
+- Resizing the terminal reuses a C4 diagram's routes at every width that packs its boxes the same way, so dragging from 200 to 120 columns lays out the largest diagram 14 times instead of 81: about 0.8 s in all instead of 3.6 s, and about 0.1 s to drag back.
+- Once its fence closes, a C4 diagram keeps its drawing while the rest of the reply streams in, so each redraw costs about 0.1 ms, as with a flowchart, instead of 0.4 to 4 ms.
+- C4 drawings hold less memory while on screen: at most about 10 to 14 MB for large diagrams, against about 15 MB in 0.2.0. Up to about 7.5 MB stays cached after they scroll away, which is what makes resizing and redraws cheap.
+- Kept replies are weighed by what they draw as well as by their text, so a transcript full of large diagrams can no longer hold many megabytes. Replies with very large tables leave that cache a little sooner.
+
 ## [0.2.0] - 2026-10-29
 
 ### Added

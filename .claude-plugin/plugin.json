@@ -1,6 +1,6 @@
 {
   "name": "merman",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Colorful, themeable rendering for Claude Code replies: tables, headings, code, numbers, paths and links.",
   "author": {
     "name": "iamrohithrnair",
