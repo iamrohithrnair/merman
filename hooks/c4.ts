@@ -1,4 +1,4 @@
-import { cells, width } from './render'
+import { cells, graphemes, width } from './render'
 
 export type C4Shape = 'person' | 'db' | 'queue' | 'box'
 export type C4Element = { id: number; name: string[]; type: string; descr: string[]; shape: C4Shape; external: boolean }
@@ -17,6 +17,7 @@ type State = {
   root: C4Item[]
   stack: Open[]
   pending?: Open
+  homes: Map<number, C4Item[]>
   rels: [Args, string][]
   broken: boolean
 }
@@ -26,7 +27,7 @@ const KIND = /^c4(context|container|component|dynamic|deployment)$/i
 export const isC4Kind = (kind: string) => KIND.test(kind)
 
 const PUML_INCLUDE = /^\s*!include\S*\s+\S*(<C4\/|C4_(Context|Container|Component|Dynamic|Deployment)\b)/m
-const PUML_ELEMENT = /^\s*(Person|System|Container|Component)(Db|Queue)?(_Ext)?\s*\(\s*\w+\s*,/m
+const PUML_ELEMENT = /^\s*(Person|System|Container|Component)(Db|Queue)?(_Ext)?\s*\(\s*\w+\s*,\s*"/m
 const PUML_KIND = /C4_(Context|Container|Component|Dynamic|Deployment)/
 const PUML_SKIP = /^(@start|@end|!|skinparam\b|LAYOUT_|SHOW_|HIDE_|'|AddElementTag|AddRelTag|AddBoundaryTag|UpdateLegend)/i
 const PUML_BLOCKS: [RegExp, RegExp][] = [
@@ -95,6 +96,7 @@ const TYPE: Record<string, string> = { person: 'Person', system: 'Software Syste
 
 const NAME_WIDTH = 24
 const DESCR_WIDTH = 28
+const MAX_DEPTH = 16
 
 const split = (text: string): string[] => {
   const out: string[] = []
@@ -111,12 +113,21 @@ const split = (text: string): string[] => {
   return out
 }
 
+const clean = (text: string) =>
+  text
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/\\n/g, '\n')
+    .replace(/[^\S\n]+/g, ' ')
+    .replace(/ ?\n ?/g, '\n')
+    .trim()
+
+const flat = (text: string) => text.replace(/\s+/g, ' ')
+
 const argsOf = (text: string, slots: string[]): Args => {
   const args: Args = {}
   const positional: string[] = []
   for (const part of split(text)) {
     const named = /^\$(\w+)\s*=\s*(.*)$/.exec(part)
-    const clean = (text: string) => text.replace(/<br\s*\/?>/gi, ' ').trim()
     if (named) args[named[1]!.toLowerCase()] = clean(named[2]!)
     else positional.push(clean(part))
   }
@@ -125,13 +136,34 @@ const argsOf = (text: string, slots: string[]): Args => {
   return args
 }
 
-export const wrap = (text: string, size: number, lines: number): string[] => {
+const pieces = (word: string, size: number): string[] => {
+  if (width(word) <= size) return [word]
+  const out = ['']
+  let used = 0
+  for (const g of graphemes(word)) {
+    const w = width(g)
+    if (used + w > size && out.at(-1)) {
+      out.push('')
+      used = 0
+    }
+    out[out.length - 1] += g
+    used += w
+  }
+  return out
+}
+
+const fill = (text: string, size: number): string[] => {
   const out: string[] = []
-  for (const word of text.split(/\s+/).filter(Boolean)) {
+  for (const word of text.split(/\s+/).filter(Boolean).flatMap(word => pieces(word, size))) {
     const last = out.at(-1)
     if (last !== undefined && width(`${last} ${word}`) <= size) out[out.length - 1] = `${last} ${word}`
     else out.push(word)
   }
+  return out
+}
+
+export const wrap = (text: string, size: number, lines: number): string[] => {
+  const out = text.split('\n').flatMap(part => fill(part, size))
   if (out.length <= lines) return out
   const kept = out.slice(0, lines)
   const tail = cells(`${kept[lines - 1]} ${out[lines]}`).slice(0, size - 1).join('').trimEnd()
@@ -150,23 +182,31 @@ const addElement = (state: State, macro: RegExpExecArray, body: string) => {
   const kind = macro[1]!.toLowerCase()
   const args = argsOf(body, SLOTS[kind]!)
   if (!args.alias) return
+  const known = state.ids.get(args.alias)
   const element: C4Element = {
-    id: state.elements.length,
+    id: known ?? state.elements.length,
     name: wrap(args.label ?? args.alias, NAME_WIDTH, 3),
-    type: `[${typeOf(kind, Boolean(macro[3]), args.techn)}]`,
+    type: `[${typeOf(kind, Boolean(macro[3]), args.techn && flat(args.techn))}]`,
     descr: wrap(args.descr ?? '', DESCR_WIDTH, 2),
     shape: kind === 'person' ? 'person' : ((macro[2]?.toLowerCase() as C4Shape | undefined) ?? 'box'),
     external: Boolean(macro[3]),
   }
+  if (known !== undefined) moveOut(state, known)
   state.ids.set(args.alias, element.id)
-  state.elements.push(element)
+  state.elements[element.id] = element
+  state.homes.set(element.id, into(state))
   into(state).push(element)
+}
+
+const moveOut = (state: State, id: number) => {
+  const home = state.homes.get(id)!
+  home.splice(home.indexOf(state.elements[id]!), 1)
 }
 
 const addBoundary = (state: State, name: string, body: string) => {
   const args = argsOf(body, SLOTS[TYPED_BOUNDARY.test(name) ? 'boundary' : 'scope']!)
   const label = args.label ?? args.alias ?? ''
-  const frame: C4Frame = { label: args.type ? `${label} [${args.type}]` : label, children: [] }
+  const frame: C4Frame = { label: flat(args.type ? `${label} [${args.type}]` : label), children: [] }
   into(state).push(frame)
   state.pending = { frame, alias: args.alias ?? '' }
 }
@@ -189,10 +229,13 @@ export const statements = (line: string): string[] => {
   return out.filter(Boolean)
 }
 
+const TITLE = /^title\s+(.+)$/i
+
 const readLine = (state: State, line: string) => {
-  if (line === '{' && state.pending) {
-    state.stack.push(state.pending)
+  if (line === '{') {
+    state.stack.push(state.pending ?? { frame: { label: '', children: into(state) }, alias: '' })
     state.pending = undefined
+    if (state.stack.length > MAX_DEPTH) state.broken = true
     return
   }
   state.pending = undefined
@@ -200,9 +243,9 @@ const readLine = (state: State, line: string) => {
     if (!state.stack.pop()) state.broken = true
     return
   }
-  const title = /^title\s+(.+)$/i.exec(line)
+  const title = TITLE.exec(line)
   if (title) {
-    state.title = title[1]!.trim()
+    state.title = flat(clean(title[1]!))
     return
   }
   const statement = STATEMENT.exec(line)
@@ -218,7 +261,7 @@ const relOf = (state: State, [args, name]: [Args, string]): C4Rel | null => {
   const from = state.ids.get(args.from ?? '')
   const to = state.ids.get(args.to ?? '')
   if (from === undefined || to === undefined) return null
-  const label = [args.label, args.techn ? `[${args.techn}]` : undefined].filter(Boolean).join(' ')
+  const label = flat([args.label, args.techn ? `[${args.techn}]` : undefined].filter(Boolean).join(' '))
   const back = name.includes('back')
   return { from: back ? to : from, to: back ? from : to, label, both: name.startsWith('birel') }
 }
@@ -232,11 +275,14 @@ const pruned = (items: C4Item[]): C4Item[] =>
 
 export const c4Model = (source: string): C4Model | null => {
   const lines = source.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('%%'))
-  const kind = lines.shift() ?? ''
+  const kind = (lines.shift() ?? '').replace(/\s*%%.*$/, '')
   if (!isC4Kind(kind)) return null
-  const state: State = { ids: new Map(), elements: [], root: [], stack: [], rels: [], broken: false }
-  for (const line of lines) for (const piece of statements(line)) readLine(state, piece)
-  if (state.broken || state.stack.length || !state.elements.length) return null
+  const state: State = { ids: new Map(), elements: [], root: [], stack: [], homes: new Map(), rels: [], broken: false }
+  for (const line of lines) {
+    for (const piece of TITLE.test(line) ? [line] : statements(line)) readLine(state, piece)
+    if (state.broken) return null
+  }
+  if (state.stack.length || !state.elements.length) return null
   const rels = state.rels.map(rel => relOf(state, rel))
   if (rels.some(rel => rel === null)) return null
   return { title: state.title, items: pruned(state.root), rels: rels as C4Rel[], elements: state.elements }

@@ -93,17 +93,18 @@ merman draws replies in place of Claude Code's own markdown renderer, so its cos
 
 | What | Median | p95 |
 | --- | --- | --- |
-| Full demo reply (headings, tables, code, 6 diagrams), first draw | 1.8 ms | 2.3 ms |
-| Same reply, redrawn | 0.29 ms | 0.40 ms |
-| One redraw while a 16 KB reply streams in | 1.2 ms | 2.4 ms |
-| 300-row table | 2.3 ms | 3.0 ms |
-| 800-line highlighted code block | 0.94 ms | 1.7 ms |
-| Markdown parse of the demo reply | 0.06 ms | 0.07 ms |
+| Full demo reply (headings, tables, code, 7 diagrams), first draw | 2.3 ms | 3.0 ms |
+| Same reply, redrawn | 0.35 ms | 0.45 ms |
+| One redraw while an 18 KB reply streams in | 1.4 ms | 2.5 ms |
+| 300-row table | 2.4 ms | 3.0 ms |
+| 800-line highlighted code block | 0.98 ms | 1.6 ms |
+| Markdown parse of the demo reply | 0.07 ms | 0.08 ms |
 
 Measured with `npm --prefix scripts run bench` (200 runs, Node 24, Apple M4 Pro). A 60 Hz frame is 16.7 ms, so even a long reply leaves most of the frame free.
 
 - **Redraws:** finished replies keep their drawing and are reused when only their place on screen changes, so scrolling back does not redraw them.
-- **Screen size:** the demo reply draws in 848 nodes, 4% of Claude Code's 20000-node limit per tree. A 500-line highlighted file uses 38%.
+- **C4 layout:** merman routes C4 lines itself, in about 1 ms for 5 to 10 boxes and 30 to 45 ms for 30 boxes and 40 relationships at the 80-line cap. The router stops after a fixed amount of work, about 100 ms, and lists what it has not reached in the legend.
+- **Screen size:** the demo reply draws in 996 nodes, 5% of Claude Code's 20000-node limit per tree. A 500-line highlighted file uses 38%. Past 18000 nodes a reply drops C4 hover groups first, then draws its heaviest code blocks plain.
 - **Tokens:** merman's only model-facing cost is the `diagramHints` note, added once to the first prompt of a conversation and again only after a compaction drops it. Like any message it then stays in the conversation's context, where prompt caching covers it on later turns. Replies, tool output and redraws add nothing.
 
   | Part | Tokens |
@@ -114,7 +115,7 @@ Measured with `npm --prefix scripts run bench` (200 runs, Node 24, Apple M4 Pro)
   | **Total** | **about 355, or 410 with LaTeX** |
 
   Set `diagramHints` to `false` and merman sends nothing to the model. See [Diagram hints](#diagram-hints).
-- **Size:** 616 KB of hooks on disk, 220 KB of it the bundled mermaid and Prism engines. No network calls.
+- **Size:** 656 KB of hooks on disk, 220 KB of it the bundled mermaid and Prism engines. No network calls.
 
 ## Features
 
@@ -162,7 +163,7 @@ Code blocks tagged `mermaid` draw as colored text art:
 
 - flowcharts (`graph LR`, `graph TD`, decisions), sequence, state, class and ER diagrams
 - bar and line charts with `xychart-beta`, sized to the terminal width
-- C4 context, container, component, dynamic and deployment diagrams, laid out by merman itself: each box shows its name in bold, its type in brackets (`[Container: Go]`) and its description, boundaries and deployment nodes draw as frames inside frames, and external elements draw in the comment color. Each relationship is a numbered line, and a legend under the diagram spells out who talks to whom, the label and the technology; dynamic diagrams number their steps in order, and relationships between the same two boxes in the same direction share one line labelled with all their numbers, like `1,3`. Pointing at a line or its legend row lights both. A relationship from a box to itself, or one with no free path, is listed in the legend in the comment color with no line. The same C4 written for [C4-PlantUML](https://github.com/plantuml-stdlib/C4-PlantUML) draws from a `plantuml` or `puml` block: merman skips the `@startuml`, `!include`, `LAYOUT_…`, `SHOW_LEGEND()` and `skinparam` lines and draws the rest, with no Java or PlantUML involved; other PlantUML stays a code block. Boxes wrap onto more rows and the legend onto more lines to fit the terminal, and a diagram still streaming in shows as source until its fence closes. Style and layout statements (`UpdateElementStyle`, `Rel_U`, `Lay_R`) are skipped, and a relationship that points at a boundary rather than a box leaves the diagram as source
+- C4 context, container, component, dynamic and deployment diagrams, laid out by merman itself: each box shows its name in bold, its type in brackets (`[Container: Go]`) and its description, boundaries and deployment nodes draw as frames inside frames, and external elements draw in the comment color. Each relationship is a numbered line, and a legend under the diagram spells out who talks to whom, the label and the technology; dynamic diagrams number their steps in order, and relationships between the same two boxes in the same direction share one line labelled with all their numbers, like `1,3`. Pointing at a line or its legend row lights both. A relationship from a box to itself, one with no free path or no room for its number, or one the router has not reached when it stops, is listed in the legend in the comment color with no line, and so is every relationship of a diagram whose boxes alone are wider than the terminal. The same C4 written for [C4-PlantUML](https://github.com/plantuml-stdlib/C4-PlantUML) draws from a `plantuml` or `puml` block: merman skips the `@startuml`, `!include`, `LAYOUT_…`, `SHOW_LEGEND()` and `skinparam` lines, draws what is inside `together` and `package` groups in place, breaks lines at `\n`, and draws the rest, with no Java or PlantUML involved; other PlantUML stays a code block. An alias defined twice draws once, the way mermaid draws it: with its last label, inside the boundary of its last definition. Boxes wrap onto more rows and the legend onto more lines to fit the terminal, titles wrap, a frame label too long for its frame ends in `…`, and text without spaces, like Chinese, breaks between characters; a diagram still streaming in shows as source until its fence closes. Style and layout statements (`UpdateElementStyle`, `Rel_U`, `Lay_R`) are skipped; a relationship that points at a boundary rather than a box, boundaries nested more than 16 deep, or a picture too big to lay out leave the diagram as source
 - `pie` charts as a circle with a colored legend, largest slice first, and `gantt` schedules as bars on a shared date or time axis, starting on a half cell and ending on an eighth so close durations draw apart
 - each box and participant gets its own theme color, the same at both ends of a sequence diagram
 - bars in a multi-series chart get their own colors; a single-series chart prints each value above its bar and colors the tallest one

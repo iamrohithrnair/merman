@@ -559,93 +559,57 @@
           "│ [Person] │      "
         <Text color=#6c7086>
           "│ [External Software System] │"
-      <Box row>
+      <Text>
         <Text color=#89b4fa>
-          "╰─────"
-        <Text color=#89b4fa>
-          "┬"
-        <Text color=#89b4fa>
-          "────╯      "
+          "╰─────┬────╯      "
         <Text color=#6c7086>
           "└───"
         <Text color=#89b4fa>
           "┬"
         <Text color=#6c7086>
           "────────────────────────┘"
-      <Box row>
-        <Text>
-          "      "
+      <Text>
         <Text color=#89b4fa>
-          "│"
-        <Text>
-          "               "
-        <Text color=#89b4fa>
-          "│"
-      <Box row>
-        <Text>
-          "      "
+          "      │               │"
+      <Text>
         <Text color=#a6e3a1>
-          "1"
-        <Text>
-          "               "
+          "      1               "
         <Text color=#89b4fa>
           "│"
-      <Box row>
-        <Text>
-          "      "
+      <Text>
         <Text color=#89b4fa>
-          "│"
-        <Text>
-          "               "
+          "      │               │"
+      <Text>
         <Text color=#89b4fa>
-          "│"
-      <Box row>
+          "┌─────│───────────────│────────────────────────────┐"
+      <Text>
         <Text color=#89b4fa>
-          "┌─────"
-        <Text color=#89b4fa>
-          "│"
-        <Text color=#89b4fa>
-          "───────────────"
-        <Text color=#89b4fa>
-          "│"
-        <Text color=#89b4fa>
-          "────────────────────────────┐"
-      <Box row>
-        <Text color=#89b4fa>
-          "│     "
-        <Text color=#89b4fa>
-          "│"
-        <Text>
-          "               "
-        <Text color=#89b4fa>
-          "│"
+          "│     │               │ "
         <Text color=#cdd6f4>
-          " Shop                       "
+          "Shop                       "
         <Text color=#89b4fa>
           "│"
-      <Box row>
+      <Text>
         <Text color=#89b4fa>
           "│     "
         <Text color=#cba6f7>
-          "▼"
-        <Text>
-          "               "
+          "▼               "
         <Text color=#a6e3a1>
-          "2"
+          "2                            "
         <Text color=#89b4fa>
-          "                            │"
-      <Box row>
+          "│"
+      <Text>
         <Text color=#89b4fa>
           "│ "
         <Text color=#f9e2af>
           "┌─────────────────┐ "
         <Text color=#89b4fa>
-          "│"
+          "│    "
         <Text color=#f5c2e7>
-          "    ╭─────────────────────╮ "
+          "╭─────────────────────╮ "
         <Text color=#89b4fa>
           "│"
-      <Box row>
+      <Text>
         <Text color=#89b4fa>
           "│ "
         <Text color=#f9e2af>
@@ -657,16 +621,16 @@
         <Text color=#cba6f7>
           "◄"
         <Text color=#89b4fa>
-          "┘"
+          "┘    "
         <Text color=#f5c2e7>
-          "    │       "
+          "│       "
         <Text color=#f5c2e7 bold>
           "Ledger        "
         <Text color=#f5c2e7>
           "│ "
         <Text color=#89b4fa>
           "│"
-      <Box row>
+      <Text>
         <Text color=#89b4fa>
           "│ "
         <Text color=#f9e2af>
@@ -707,7 +671,7 @@
           "└──────────────────────────────────────────────────┘"
       <Text>
         " "
-      <Box row>
+      <Text>
         <Text color=#a6e3a1>
           " 1  "
         <Text color=#89b4fa bold>
@@ -718,7 +682,7 @@
           "Orders  "
         <Text color=#cdd6f4>
           "Uses"
-      <Box row>
+      <Text>
         <Text color=#a6e3a1>
           " 2  "
         <Text color=#6c7086 bold>
@@ -729,7 +693,7 @@
           "Orders  "
         <Text color=#cdd6f4>
           "Confirms [HTTPS]"
-      <Box row>
+      <Text>
         <Text color=#a6e3a1>
           " 3  "
         <Text color=#f9e2af bold>

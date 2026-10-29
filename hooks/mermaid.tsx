@@ -77,7 +77,7 @@ const SIDEWAYS = /^(\s*(?:flowchart|graph)[ \t]+)(LR|RL)\b/
 
 const SUPPORTED = /^(flowchart|graph|statediagram(-v2)?|xychart(-beta)?|sequencediagram|classdiagram|erdiagram|pie|gantt)$/i
 
-const kindOf = (source: string) => source.replace(/^(\s*%%[^\n]*\n)+/, '').trim().split(/\s/)[0] ?? ''
+const kindOf = (source: string) => /^\s*(\S*)/.exec(source.replace(/^(\s*%%[^\n]*\n)+/, ''))![1]!
 
 const unsupportedKind = (source: string): string | undefined => {
   const kind = kindOf(source)
@@ -105,17 +105,24 @@ const artWidth = (art: string) => remember(caches.widths, art, () => Math.max(..
 
 export const mermaidText = (source: string, ascii: boolean, columns: number, pieColors = 0): string | null => mermaidArt(source, ascii, columns, pieColors)?.text ?? null
 
-const mermaidArt = (source: string, ascii: boolean, columns: number, pieColors: number): ChartArt | null =>
-  remember(caches.fitted, `${ascii}:${columns}:${pieColors}:${source}`, () => {
+const C4_CELLS_PER_ENTRY = 1000
+
+const weightOf = (art: ChartArt | null | undefined) => (art?.c4 ? 1 + Math.floor(art.c4.roles.reduce((n, row) => n + row.length, 0) / C4_CELLS_PER_ENTRY) : 1)
+
+const mermaidArt = (source: string, ascii: boolean, columns: number, pieColors: number): ChartArt | null => {
+  const tint = kindOf(source).toLowerCase() === 'pie' ? pieColors : 0
+  const fitted = caches.fitted
+  return remember(fitted, `${ascii}:${columns}:${tint}:${source}`, () => {
     source = source.replace(INLINE_TAG, '')
     if (source.length > 8000 || source.split('\n').length > MAX_LINES) return null
     if (isC4Kind(kindOf(source))) return c4Art(source, ascii, columns)
     const own = OWN[kindOf(source).toLowerCase()]
-    if (own) return own(source, ascii, columns, pieColors)
+    if (own) return own(source, ascii, columns, tint)
     const art = draw(source, ascii, columns)
     const text = art === null || artWidth(art) <= columns - 2 || !SIDEWAYS.test(source) ? art : (draw(source.replace(SIDEWAYS, '$1TD'), ascii, columns) ?? art)
     return text === null ? null : { text, series: chartSeries(source, ascii, columns) }
-  }, caches.limit)
+  }, caches.limit, key => weightOf(fitted.get(key)))
+}
 
 const c4Art = (source: string, ascii: boolean, columns: number): ChartArt | null => {
   const model = c4Model(source)
@@ -319,8 +326,8 @@ const heldCells = (style: Style, row: string[], visual: boolean) => (mirrored(st
 export const boxArt = (el: ElementTable, style: Style, art: string, key: string, marks: [string[], Mark][] = [], slices?: number[][], series?: number[][], c4?: C4Paint): RenderElement => {
   const { Box, Text } = el
   const { grid, colors } = painting(style, art, slices, series, c4)
-  if (c4 && !mirrored(style) && style.shape !== 'engine') return c4Element(el, style.theme, grid, colors, c4, key, `${style.noteKey ?? ''}:${key}`)
   const visual = style.reorder && style.shape === 'visual' && hasRtl(art)
+  if (c4 && !mirrored(style) && style.shape !== 'engine' && !visual) return c4Element(el, style.theme, grid, colors, c4, key, style.noteKey === undefined ? undefined : `${style.noteKey}:${key}`)
   return (
     <Box key={key} flexDirection="column" paddingLeft={mirrored(style) ? 0 : 2}>
       {grid.map((row, i) => {
@@ -344,33 +351,35 @@ export const shortenEdgeLabels = (source: string, max: number): string =>
   source.replace(EDGE_LABEL, (_, open, quoted, close, piped) =>
     quoted !== undefined ? `${open}"${cap(quoted, max)}"${close}` : `|${cap(piped, max)}|`)
 
+const leanOf = (el: ElementTable, style: Style, art: ChartArt, key: string) => (art.c4 && style.noteKey !== undefined ? { lean: () => boxArt(el, { ...style, noteKey: undefined }, art.text, key, [], undefined, undefined, art.c4) } : {})
+
 const pieColorsOf = (style: Style) => (style.pieStyle === 'round' ? diagramPalette(style.theme).length : 0)
 
 const PLANTUML = /^(plantuml|puml)$/i
 
 const sourceOf = (block: Extract<Block, { kind: 'code' }>): string | undefined => {
-  const text = block.lines.join('\n')
-  if (block.lang.toLowerCase() === 'mermaid') return text
-  return PLANTUML.test(block.lang) ? plantUmlC4(text) : undefined
+  if (block.lang.toLowerCase() === 'mermaid') return block.lines.join('\n')
+  return PLANTUML.test(block.lang) ? plantUmlC4(block.lines.join('\n')) : undefined
 }
 
 type Diagram = NonNullable<ReturnType<Drawn['get']>>
 
 const waitsForFence = (block: Extract<Block, { kind: 'code' }>, source: string) => block.isOpen && isC4Kind(kindOf(source))
 
-const diagramOf = (el: ElementTable, style: Style, block: Extract<Block, { kind: 'code' }>, columns: number, key: string): Diagram | undefined => {
+const labelLimits = (source: string) => (isC4Kind(kindOf(source)) ? [Infinity] : [Infinity, 24, 12])
+
+const diagramOf = (el: ElementTable, style: Style, block: Extract<Block, { kind: 'code' }>, source: string, columns: number, key: string): Diagram | undefined => {
   caches = block.isOpen ? UNFINISHED : FINISHED
-  const source = sourceOf(block)!
   if (waitsForFence(block, source)) return undefined
   const pieColors = pieColorsOf(style)
   let narrowest = Infinity
   let full: ChartArt | null = null
-  for (const max of [Infinity, 24, 12]) {
+  for (const max of labelLimits(source)) {
     const art = mermaidArt(max === Infinity ? source : shortenEdgeLabels(source, max), style.mermaidAscii, columns, pieColors)
     if (max === Infinity) full = art
     const wide = art === null ? Infinity : artWidth(art.text)
     narrowest = Math.min(narrowest, wide)
-    if (art !== null && wide <= columns - 2) return { element: boxArt(el, style, art.text, key, inlineMarks(source), art.slices, art.series, art.c4), art: art.text }
+    if (art !== null && wide <= columns - 2) return { element: boxArt(el, style, art.text, key, inlineMarks(source), art.slices, art.series, art.c4), art: art.text, ...leanOf(el, style, art, key) }
   }
   return block.isOpen ? undefined : { note: noteOf(source, narrowest, columns), ...(full ? { full } : {}) }
 }
@@ -400,12 +409,17 @@ export const viewerProps = (style: Style, art: ChartArt, view: number): ViewerPr
   return { rows: grid.map((row, r) => viewerRow(row, colors[r] ?? UNCOLORED, index)), palette, width: artWidth(art.text), view, bar: [t.accent ?? '', t.rule ?? '', t.codeComment ?? ''] }
 }
 
+const diagramAt = (el: ElementTable, style: Style, block: Block, columns: number, key: string): Diagram | undefined => {
+  if (block.kind !== 'code') return undefined
+  const source = sourceOf(block)
+  return source === undefined ? undefined : diagramOf(el, style, block, source, columns, key)
+}
+
 export const drawDiagrams = (el: ElementTable, style: Style, blocks: Block[], columns: number): Drawn => {
   const drawn: Drawn = new Map()
   if (style.mermaid) {
     for (const [i, block] of blocks.entries()) {
-      if (block.kind !== 'code' || sourceOf(block) === undefined) continue
-      const diagram = diagramOf(el, style, block, columns, `b${i}`)
+      const diagram = diagramAt(el, style, block, columns, `b${i}`)
       if (diagram) drawn.set(i, diagram)
     }
     caches = FINISHED

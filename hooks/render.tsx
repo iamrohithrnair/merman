@@ -1365,7 +1365,7 @@ const renderList = (el: ElementTable, style: Style, block: Extract<Block, { kind
 }
 
 export type CopyButton = (text: string | (() => string), key: string, label?: string, rich?: (() => string) | 'png') => RenderElement | null
-export type Drawn = Map<number, { element?: RenderElement; art?: string; note?: string; full?: ChartArt }>
+export type Drawn = Map<number, { element?: RenderElement; art?: string; note?: string; full?: ChartArt; lean?: () => RenderElement }>
 
 const noteRow = ({ Text }: ElementTable, t: Theme, note?: string): RenderElement | null => (note ? <Text color={t.codeComment}>{note}</Text> : null)
 export type FoldLook = { label?: string; face?: (folded: boolean) => RenderElement }
@@ -1449,11 +1449,17 @@ const markedRow = ({ Box }: ElementTable, key: string, element: RenderElement, f
   </Box>
 )
 
+const leaner = (drawn: Drawn): Drawn => ([...drawn.values()].some(d => d.lean) ? new Map([...drawn].map(([i, d]) => [i, d.lean ? { ...d, element: d.lean() } : d])) : drawn)
+
 export const renderBlocks = (el: ElementTable, style: Style, blocks: Block[], columns: number, drawn: Drawn = new Map(), copy?: CopyButton, fold?: Fold, tip?: Tip): RenderElement[] => {
   const out = drawBlocks(el, style, blocks, columns, drawn, copy, fold, tip)
-  const excess = style.plainCode ? 0 : nodeCount(out) - NODE_BUDGET
-  const plainCode = excess > 0 ? heaviestCode(blocks, drawn, excess) : undefined
-  return plainCode?.size ? drawBlocks(el, { ...style, plainCode }, blocks, columns, drawn, copy, fold, tip) : out
+  const total = style.plainCode ? 0 : nodeCount(out)
+  if (total <= NODE_BUDGET) return out
+  const lean = leaner(drawn)
+  const fitted = lean === drawn ? out : drawBlocks(el, style, blocks, columns, lean, copy, fold, tip)
+  const excess = (fitted === out ? total : nodeCount(fitted)) - NODE_BUDGET
+  const plainCode = excess > 0 ? heaviestCode(blocks, lean, excess) : undefined
+  return plainCode?.size ? drawBlocks(el, { ...style, plainCode }, blocks, columns, lean, copy, fold, tip) : fitted
 }
 
 const drawBlocks = (el: ElementTable, style: Style, blocks: Block[], columns: number, drawn: Drawn = new Map(), copy?: CopyButton, fold?: Fold, tip?: Tip): RenderElement[] => {

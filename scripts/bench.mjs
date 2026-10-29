@@ -84,7 +84,7 @@ const rows = [
   time('code block, 800 lines, highlighted', i => reply(fresh(bigCode, i), style), Math.max(20, RUNS / 5)),
   time('code block, 1500 lines, drawn plain past the node budget', i => reply(fresh(hugeCode, i), style), Math.max(20, RUNS / 5)),
   {
-    stage: `stream replay, ${streamTimes.length} redraws of a ${streamSource.length}-char reply (per redraw)`,
+    stage: 'stream replay of the 6x demo reply, every 100 chars (per redraw)',
     median: quantile(streamTimes, 0.5),
     p95: quantile(streamTimes, 0.95),
   },

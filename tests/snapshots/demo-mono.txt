@@ -250,106 +250,44 @@
       <Text>
         <Text>
           "│ [Person] │      │ [External Software System] │"
-      <Box row>
+      <Text>
         <Text>
-          "╰─────"
+          "╰─────┬────╯      └───┬────────────────────────┘"
+      <Text>
         <Text>
-          "┬"
+          "      │               │"
+      <Text>
         <Text>
-          "────╯      └───"
+          "      1               │"
+      <Text>
         <Text>
-          "┬"
+          "      │               │"
+      <Text>
         <Text>
-          "────────────────────────┘"
-      <Box row>
+          "┌─────│───────────────│────────────────────────────┐"
+      <Text>
         <Text>
-          "      "
+          "│     │               │ Shop                       │"
+      <Text>
         <Text>
-          "│"
+          "│     ▼               2                            │"
+      <Text>
         <Text>
-          "               "
-        <Text>
-          "│"
-      <Box row>
-        <Text>
-          "      "
-        <Text>
-          "1"
-        <Text>
-          "               "
-        <Text>
-          "│"
-      <Box row>
-        <Text>
-          "      "
-        <Text>
-          "│"
-        <Text>
-          "               "
-        <Text>
-          "│"
-      <Box row>
-        <Text>
-          "┌─────"
-        <Text>
-          "│"
-        <Text>
-          "───────────────"
-        <Text>
-          "│"
-        <Text>
-          "────────────────────────────┐"
-      <Box row>
-        <Text>
-          "│     "
-        <Text>
-          "│"
-        <Text>
-          "               "
-        <Text>
-          "│"
-        <Text>
-          " Shop                       │"
-      <Box row>
-        <Text>
-          "│     "
-        <Text>
-          "▼"
-        <Text>
-          "               "
-        <Text>
-          "2"
-        <Text>
-          "                            │"
-      <Box row>
-        <Text>
-          "│ ┌─────────────────┐ "
-        <Text>
-          "│"
-        <Text>
-          "    ╭─────────────────────╮ │"
-      <Box row>
+          "│ ┌─────────────────┐ │    ╭─────────────────────╮ │"
+      <Text>
         <Text>
           "│ │     "
         <Text bold>
           "Orders      "
         <Text>
-          "│"
-        <Text>
-          "◄┘"
-        <Text>
-          "    │       "
+          "│◄┘    │       "
         <Text bold>
           "Ledger        "
         <Text>
           "│ │"
-      <Box row>
+      <Text>
         <Text>
-          "│ │ [Container: Go] "
-        <Text>
-          "├───3─►"
-        <Text>
-          "│ [Container: SQLite] │ │"
+          "│ │ [Container: Go] ├───3─►│ [Container: SQLite] │ │"
       <Text>
         <Text>
           "│ │  Takes orders   │      ╰─────────────────────╯ │"
@@ -364,7 +302,7 @@
           "└──────────────────────────────────────────────────┘"
       <Text>
         " "
-      <Box row>
+      <Text>
         <Text>
           " 1  "
         <Text bold>
@@ -375,7 +313,7 @@
           "Orders  "
         <Text>
           "Uses"
-      <Box row>
+      <Text>
         <Text>
           " 2  "
         <Text bold>
@@ -386,7 +324,7 @@
           "Orders  "
         <Text>
           "Confirms [HTTPS]"
-      <Box row>
+      <Text>
         <Text>
           " 3  "
         <Text bold>

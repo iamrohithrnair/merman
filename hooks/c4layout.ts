@@ -1,5 +1,5 @@
 import type { C4Element, C4Item, C4Model, C4Rel } from './c4'
-import { isFrame } from './c4'
+import { isFrame, wrap } from './c4'
 import { cells, width } from './render'
 
 export const ROLE = { blank: 0, frame: 1, frameLabel: 2, box: 3, name: 4, line: 5, arrow: 6, number: 7, title: 8, text: 9, muted: 10 } as const
@@ -10,7 +10,7 @@ export type C4Paint = { roles: number[][]; hues: number[][]; scopes: number[][] 
 export type C4Art = { text: string; paint: C4Paint }
 
 type Rect = { x: number; y: number; w: number; h: number }
-type Placed = Rect & { item: C4Item; children: Placed[] }
+type Placed = Rect & { item: C4Item; children: Placed[]; label: string }
 type Port = { x: number; y: number; bx: number; by: number; d: number }
 type Step = { x: number; y: number }
 type Route = { path: Step[]; start: Port; end: Port }
@@ -24,6 +24,9 @@ const MARGIN_Y = 2
 const FREE = 0
 const SOLID = 1
 const BORDER = 2
+const CELLS = 120000
+const HUG = 5
+const POPS = 1000000
 
 const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const
 const ARROWS = ['►', '◄', '▼', '▲']
@@ -32,6 +35,8 @@ const GLYPHS: Record<string, string> = { lr: '─', du: '│', dr: '┌', dl: '�
 const CORNERS: Record<string, string> = { person: '╭╮╰╯', db: '╭╮╰╯', queue: '╟╢╟╢', box: '┌┐└┘', frame: '┌┐└┘' }
 const ASCII: Record<string, string> = { '─': '-', '│': '|', '►': '>', '◄': '<', '▼': 'v', '▲': '^', '…': '~' }
 
+const shows = (cell: string) => cell === '' || width(cell) > 0
+
 const linesOf = (e: C4Element) => [...e.name, e.type, ...e.descr]
 
 const hueOf = (e: C4Element) => (e.external ? EXTERNAL : e.id)
@@ -39,12 +44,13 @@ const hueOf = (e: C4Element) => (e.external ? EXTERNAL : e.id)
 const measure = (item: C4Item, room: number, gap: number): Placed => {
   if (!isFrame(item)) {
     const lines = linesOf(item)
-    return { x: 0, y: 0, w: Math.max(...lines.map(width)) + 4, h: lines.length + 2, item, children: [] }
+    return { x: 0, y: 0, w: Math.max(...lines.map(width)) + 4, h: lines.length + 2, item, children: [], label: '' }
   }
   const children = item.children.map(child => measure(child, room - 2 * FRAME_PAD, gap))
   const inner = pack(children, room - 2 * FRAME_PAD, gap)
   for (const child of children) shift(child, FRAME_PAD, FRAME_TOP)
-  return { x: 0, y: 0, w: Math.max(inner.w, width(item.label) + 2) + 2 * FRAME_PAD, h: inner.h + FRAME_TOP + FRAME_PAD, item, children }
+  const label = wrap(item.label, Math.max(1, inner.w, room - 2 * FRAME_PAD) - 2, 1)[0] ?? ''
+  return { x: 0, y: 0, w: Math.max(inner.w, width(label) + 2) + 2 * FRAME_PAD, h: inner.h + FRAME_TOP + FRAME_PAD, item, children, label }
 }
 
 const shift = (p: Placed, dx: number, dy: number) => {
@@ -72,7 +78,10 @@ const pack = (blocks: Placed[], room: number, gap: number) => {
   return { w, h: y + rowH }
 }
 
+type Scratch = { best: Int32Array; back: Int32Array; seen: Int32Array; arrive: Uint8Array; hug: Uint8Array; round: number; pops: number }
+
 class Canvas {
+  scratch?: Scratch
   readonly chars: string[][]
   readonly roles: number[][]
   readonly hues: number[][]
@@ -115,7 +124,7 @@ class Canvas {
 
   text(x: number, y: number, text: string, role: number, hue = -1, scope = -1) {
     let at = x
-    for (const cell of cells(text)) this.put(at++, y, cell, role, hue, scope)
+    for (const cell of cells(text)) if (shows(cell)) this.put(at++, y, cell, role, hue, scope)
     return at
   }
 }
@@ -140,10 +149,19 @@ const centered = (c: Canvas, r: Rect, y: number, text: string, role: number, hue
 
 const drawFrame = (c: Canvas, p: Placed, label: string) => {
   outline(c, p, CORNERS.frame!, ROLE.frame, -1)
-  for (let y = p.y; y < p.y + p.h; y++)
-    for (let x = p.x; x < p.x + p.w; x++) if (y === p.y || y === p.y + p.h - 1 || x === p.x || x === p.x + p.w - 1) c.solid[y]![x] = BORDER
+  for (const y of [p.y, p.y + p.h - 1]) c.solid[y]!.fill(BORDER, p.x, p.x + p.w)
+  for (let y = p.y; y < p.y + p.h; y++) {
+    c.solid[y]![p.x] = BORDER
+    c.solid[y]![p.x + p.w - 1] = BORDER
+  }
+  for (const q of cornersOf(p)) c.solid[q.y]![q.x] = SOLID
   const end = centered(c, p, p.y + 1, label, ROLE.frameLabel, -1)
   for (let x = end - width(label) - 1; x <= end; x++) c.solid[p.y + 1]![x] = SOLID
+}
+
+const cornersOf = (p: Rect): Step[] => {
+  const [right, bottom] = [p.x + p.w - 1, p.y + p.h - 1]
+  return [[p.x, p.y, 1, 1], [right, p.y, -1, 1], [p.x, bottom, 1, -1], [right, bottom, -1, -1]].flatMap(([x, y, dx, dy]) => [{ x: x!, y: y! }, { x: x! + dx!, y: y! }, { x: x!, y: y! + dy! }])
 }
 
 const drawElement = (c: Canvas, p: Placed, e: C4Element) => {
@@ -155,7 +173,7 @@ const drawElement = (c: Canvas, p: Placed, e: C4Element) => {
 const draw = (c: Canvas, placed: Placed[], boxes: Map<number, Placed>) => {
   for (const p of placed) {
     if (isFrame(p.item)) {
-      drawFrame(c, p, p.item.label)
+      drawFrame(c, p, p.label)
       draw(c, p.children, boxes)
     } else {
       drawElement(c, p, p.item)
@@ -233,65 +251,90 @@ const stepCost = (c: Canvas, x: number, y: number, nx: number, ny: number, d: nu
   const busy = c.runH[ny]![nx] || c.runV[ny]![nx]
   if (along && !shared) return Infinity
   if (busy && nd !== d) return Infinity
-  return 1 + (nd !== d ? 4 : 0) + (busy ? 8 : 0) + (border ? 6 : 0) + (along ? shared : 0)
+  return 1 + (nd !== d ? 4 : 0) + (busy ? 8 : 0) + (border ? 6 : hugCost(c, nx, ny, nd)) + (along ? shared : 0)
+}
+
+const hugCost = (c: Canvas, x: number, y: number, d: number) => {
+  const hug = c.scratch!.hug[y * c.w + x]!
+  return HUG * (d > 1 ? hug & 3 : hug >> 2)
+}
+
+const hugsOf = (c: Canvas): Uint8Array => {
+  const hug = new Uint8Array(c.w * c.h)
+  const at = (x: number, y: number) => Number(c.solid[y]?.[x] === BORDER)
+  for (let y = 0; y < c.h; y++) for (let x = 0; x < c.w; x++) hug[y * c.w + x] = at(x - 1, y) + at(x + 1, y) + ((at(x, y - 1) + at(x, y + 1)) << 2)
+  return hug
 }
 
 const toward = (b: Rect, x: number, y: number) => Math.max(0, b.x - x, x - (b.x + b.w)) + Math.max(0, b.y - y, y - (b.y + b.h))
 
-type Frontier = { c: Canvas; to: Rect; shared: number; best: Float64Array; back: Int32Array; heap: Heap }
+type Frontier = { c: Canvas; s: Scratch; to: Rect; shared: number; heap: Heap }
 
-const expand = ({ c, to, shared, best, back, heap }: Frontier, k: number, x: number, y: number, d: number) => {
+const scratchOf = (c: Canvas): Scratch => {
+  const states = c.w * c.h * 4
+  c.scratch ??= { best: new Int32Array(states), back: new Int32Array(states), seen: new Int32Array(states), arrive: new Uint8Array(c.w * c.h), hug: hugsOf(c), round: 0, pops: 0 }
+  return c.scratch
+}
+
+const expand = ({ c, s, to, shared, heap }: Frontier, k: number, x: number, y: number, d: number) => {
   for (let nd = 0; nd < 4; nd++) {
     if (reversed(nd, d)) continue
     const nx = x + DIRS[nd]![0]
     const ny = y + DIRS[nd]![1]
-    const next = best[k]! + stepCost(c, x, y, nx, ny, d, nd, shared)
-    const nk = (ny * c.w + nx) * 4 + nd
-    if (next < best[nk]!) {
-      best[nk] = next
-      back[nk] = k
-      heap.push(next + toward(to, nx, ny), nk)
-    }
+    const step = stepCost(c, x, y, nx, ny, d, nd, shared)
+    const cell = ny * c.w + nx
+    if (step === Infinity || (s.arrive[cell] && s.arrive[cell] !== nd + 1)) continue
+    const nk = cell * 4 + nd
+    const next = s.best[k]! + step
+    if (s.seen[nk]! > s.round || (s.seen[nk] === s.round && s.best[nk]! <= next)) continue
+    s.seen[nk] = s.round
+    s.best[nk] = next
+    s.back[nk] = k
+    heap.push(next + toward(to, nx, ny), nk)
   }
 }
 
-const search = (c: Canvas, from: Rect, to: Rect, shared: number): Route | null => {
-  const starts = portsOf(c, from)
-  const goals = new Map(portsOf(c, to).map(p => [p.y * c.w + p.x, p]))
-  if (!starts.length || !goals.size) return null
-  const size = c.w * c.h * 4
-  const best = new Float64Array(size).fill(Infinity)
-  const back = new Int32Array(size).fill(-1)
-  const done = new Uint8Array(size)
+const explore = (c: Canvas, s: Scratch, starts: Port[], to: Rect, shared: number): number => {
+  s.round += 2
   const heap = new Heap()
-  starts.forEach((s, i) => {
-    const k = (s.y * c.w + s.x) * 4 + s.d
-    best[k] = 0
-    back[k] = -2 - i
-    heap.push(toward(to, s.x, s.y), k)
+  starts.forEach((p, i) => {
+    const k = (p.y * c.w + p.x) * 4 + p.d
+    s.seen[k] = s.round
+    s.best[k] = 0
+    s.back[k] = -2 - i
+    heap.push(toward(to, p.x, p.y), k)
   })
-  while (heap.size) {
+  const frontier: Frontier = { c, s, to, shared, heap }
+  while (heap.size && s.pops++ < POPS) {
     const k = heap.pop()
-    if (done[k]) continue
-    done[k] = 1
-    const d = k % 4
-    const cell = (k - d) / 4
-    const x = cell % c.w
-    const y = (cell - x) / c.w
-    const goal = goals.get(cell)
-    if (goal && reversed(d, goal.d)) return trace(c, back, starts, k, goal)
-    expand({ c, to, shared, best, back, heap }, k, x, y, d)
+    if (s.seen[k] !== s.round) continue
+    s.seen[k] = s.round + 1
+    const d = k & 3
+    const cell = k >> 2
+    if (s.arrive[cell] === d + 1) return k
+    expand(frontier, k, cell % c.w, Math.floor(cell / c.w), d)
   }
-  return null
+  return -1
+}
+
+const search = (c: Canvas, from: Rect, to: Rect, shared: number): Route | null => {
+  const s = scratchOf(c)
+  const starts = portsOf(c, from)
+  const goals = portsOf(c, to)
+  if (s.pops >= POPS || !starts.length || !goals.length) return null
+  for (const g of goals) s.arrive[g.y * c.w + g.x] = (g.d ^ 1) + 1
+  const k = explore(c, s, starts, to, shared)
+  for (const g of goals) s.arrive[g.y * c.w + g.x] = 0
+  return k < 0 ? null : trace(c, s.back, starts, k, goals.find(g => g.y * c.w + g.x === k >> 2)!)
 }
 
 const trace = (c: Canvas, back: Int32Array, starts: Port[], k: number, end: Port): Route => {
   const path: Step[] = []
   for (let at = k; ; ) {
-    const cell = (at - (at % 4)) / 4
-    path.unshift({ x: cell % c.w, y: Math.floor(cell / c.w) })
+    const cell = at >> 2
+    path.push({ x: cell % c.w, y: Math.floor(cell / c.w) })
     const prev = back[at]!
-    if (prev < -1) return { path, start: starts[-2 - prev]!, end }
+    if (prev < -1) return { path: path.reverse(), start: starts[-2 - prev]!, end }
     at = prev
   }
 }
@@ -307,6 +350,7 @@ const lay = (c: Canvas, route: Route) => {
     if (!(before.x === p.x && after.x === p.x)) c.runH[p.y]![p.x] = 1
     if (!(before.y === p.y && after.y === p.y)) c.runV[p.y]![p.x] = 1
   })
+  for (const end of [path[0]!, path.at(-1)!]) c.solid[end.y]![end.x] = SOLID
 }
 
 const glyphAt = (links: string) => GLYPHS[[...new Set(links)].sort().join('')] ?? (/[lr]/.test(links) ? '─' : '│')
@@ -348,12 +392,19 @@ const along = (path: Step[], j: number, len: number) => {
   return run.every(q => q.x === path[j]!.x) ? 'v' : undefined
 }
 
+const NUMERAL = /[\d,]/
+
+const apart = (c: Canvas, x: number, y: number, len: number) => !NUMERAL.test(c.chars[y]![x - 1] ?? '') && !NUMERAL.test(c.chars[y]![x + len] ?? '')
+
+const leftmost = (path: Step[], j: number, len: number) => Math.min(...path.slice(j, j + len).map(q => q.x))
+
 const onLine = (c: Canvas, path: Step[], j: number, len: number, strict: boolean) => {
   const way = along(path, j, len)
   if (!way || j === 0 || (way === 'v' && len > 1)) return false
   const cells = path.slice(strict ? j - 1 : j, j + len + (strict ? 1 : 0))
   if (!cells.every(q => c.links[q.y]![q.x]!.length === 2 && c.solid[q.y]![q.x] !== BORDER)) return false
-  return !strict || quiet(c, path[j]!.x, path[j]!.y, len)
+  const x = leftmost(path, j, len)
+  return strict ? quiet(c, x, path[j]!.y, len) : apart(c, x, path[j]!.y, len)
 }
 
 const open = (c: Canvas, x: number, y: number, len: number) => {
@@ -368,30 +419,37 @@ const besideAt = (c: Canvas, path: Step[], j: number, len: number): Step | undef
   return spots.find(q => open(c, q.x, q.y, len))
 }
 
+const around = (p: Step, len: number): Step[] => [1, 2].flatMap(gap => [{ x: p.x + gap, y: p.y }, { x: p.x - len - gap + 1, y: p.y }, { x: p.x, y: p.y - gap }, { x: p.x, y: p.y + gap }])
+
 const middleOut = (length: number) => Array.from({ length }, (_, j) => j).sort((a, b) => Math.abs(a - length / 2) - Math.abs(b - length / 2))
 
-const numberAt = (c: Canvas, route: Route, label: string, i: number) => {
-  const { path } = route
+const spotOf = (c: Canvas, path: Step[], len: number): Step | undefined => {
   const order = middleOut(path.length)
   for (const strict of [true, false]) {
-    const at = order.find(j => onLine(c, path, j, label.length, strict))
-    if (at !== undefined) return c.text(Math.min(...path.slice(at, at + label.length).map(q => q.x)), path[at]!.y, label, ROLE.number, -1, i)
+    const at = order.find(j => onLine(c, path, j, len, strict))
+    if (at !== undefined) return { x: leftmost(path, at, len), y: path[at]!.y }
   }
   for (const j of order) {
-    const spot = besideAt(c, path, j, label.length)
-    if (spot) return c.text(spot.x, spot.y, label, ROLE.number, -1, i)
+    const spot = besideAt(c, path, j, len)
+    if (spot) return spot
   }
-  return undefined
+  return order.flatMap(j => around(path[j]!, len)).find(q => open(c, q.x, q.y, len))
 }
 
-const finish = (c: Canvas, wires: Wire[], routes: (Route | null)[]) => {
+const numbered = (c: Canvas, route: Route, label: string, i: number) => {
+  const spot = spotOf(c, route.path, label.length)
+  if (spot) c.text(spot.x, spot.y, label, ROLE.number, -1, i)
+  return spot !== undefined
+}
+
+const finish = (c: Canvas, wires: Wire[], routes: (Route | null)[]): number[] => {
   routes.forEach((route, i) => {
     if (!route) return
     if (wires[i]!.both) arrowAt(c, route.path[0]!, route.start, i)
     else c.put(route.start.bx, route.start.by, TEES[route.start.d]!, ROLE.line, -1, i)
     arrowAt(c, route.path.at(-1)!, route.end, i)
   })
-  routes.forEach((route, i) => route && numberAt(c, route, wires[i]!.rels.map(r => r + 1).join(','), i))
+  return routes.flatMap((route, i) => (route && !numbered(c, route, labelOf(wires[i]!), i) ? [i] : []))
 }
 
 const routeAll = (c: Canvas, wires: Wire[], boxes: Map<number, Placed>): (Route | null)[] =>
@@ -418,6 +476,7 @@ const emptyRow = (): Rows => ({ chars: [[]], roles: [[]], hues: [[]], scopes: [[
 
 const append = (line: Rows, text: string, role: number, hue: number, scope: number) => {
   for (const cell of cells(text)) {
+    if (!shows(cell)) continue
     line.chars[0]!.push(cell)
     line.roles[0]!.push(role)
     line.hues[0]!.push(hue)
@@ -475,35 +534,61 @@ const legendEntry = (model: C4Model, rel: C4Rel, i: number, room: number, scope:
 
 const asciiRows = (rows: Rows): Rows => ({ ...rows, chars: rows.chars.map(r => r.map(ch => ASCII[ch] ?? (/[┌┐└┘├┤┬┴┼╭╮╰╯╟╢]/.test(ch) ? '+' : ch))) })
 
-const picture = (model: C4Model, room: number, wires: Wire[]) => {
-  const gap = Math.max(GAP_X, ...wires.map(wire => wire.rels.map(r => r + 1).join(',').length + 4))
-  const placed = model.items.map(item => measure(item, room, gap))
-  const size = pack(placed, room, gap)
-  for (const p of placed) shift(p, MARGIN_X, MARGIN_Y)
-  const c = new Canvas(size.w + 2 * MARGIN_X, size.h + 2 * MARGIN_Y)
-  const boxes = new Map<number, Placed>()
-  draw(c, placed, boxes)
-  const routes = routeAll(c, wires, boxes)
+type Blank = () => { c: Canvas; boxes: Map<number, Placed> }
+
+const inked = (blank: Blank, c: Canvas, wires: Wire[], routes: (Route | null)[]): { art: Rows; routes: (Route | null)[] } => {
   ink(c, routes)
-  finish(c, wires, routes)
-  return { art: cropped(c), routes }
+  const lost = finish(c, wires, routes)
+  if (!lost.length) return { art: cropped(c), routes }
+  const kept = routes.map((route, i) => (lost.includes(i) ? null : route))
+  const next = blank().c
+  for (const route of kept) if (route) lay(next, route)
+  return inked(blank, next, wires, kept)
+}
+
+type Layout = { placed: Placed[]; w: number; h: number }
+
+const laid = (model: C4Model, room: number, gap: number): Layout => {
+  const placed = model.items.map(item => measure(item, room, gap))
+  return { placed, ...pack(placed, room, gap) }
+}
+
+const picture = (layout: Layout, wires: Wire[]) => {
+  const w = layout.w + 2 * MARGIN_X
+  const h = layout.h + 2 * MARGIN_Y
+  if (w * h > CELLS) return null
+  for (const p of layout.placed) shift(p, MARGIN_X, MARGIN_Y)
+  const blank = () => {
+    const c = new Canvas(w, h)
+    const boxes = new Map<number, Placed>()
+    draw(c, layout.placed, boxes)
+    return { c, boxes }
+  }
+  const { c, boxes } = blank()
+  return inked(blank, c, wires, routeAll(c, wires, boxes))
 }
 
 const widest = (rows: Rows) => Math.max(0, ...rows.chars.map(r => r.length))
 
-const assemble = (model: C4Model, columns: number, room: number, ascii: boolean): Rows => {
-  const wires = wiresOf(model.rels)
-  const { art, routes } = picture(model, room, wires)
+const assemble = (model: C4Model, columns: number, layout: Layout, wires: Wire[], ascii: boolean): Rows | null => {
+  const drawn = picture(layout, wires)
+  if (!drawn) return null
+  const { art, routes } = drawn
   const scopeOf = new Map(wires.flatMap((wire, w) => (routes[w] ? wire.rels.map(r => [r, w] as const) : [])))
   const legendRoom = Math.min(columns - 2, Math.max(widest(art), 60))
   const legend = model.rels.map((rel, i) => legendEntry(model, rel, i, legendRoom, scopeOf.get(i) ?? -1, ascii))
-  const parts = [...(model.title ? [textRow(model.title, ROLE.title)] : []), art, ...(legend.length ? [emptyRow(), ...legend] : [])]
+  const title = wrap(model.title ?? '', Math.max(1, columns - 2), Infinity).map(line => textRow(line, ROLE.title))
+  const parts = [...title, art, ...(legend.length ? [emptyRow(), ...legend] : [])]
   return ascii ? asciiRows(joinRows(...parts)) : joinRows(...parts)
 }
 
-export const c4Layout = (model: C4Model, columns: number, ascii: boolean): C4Art => {
-  const rooms = [columns - 2, columns - 2 - 2 * MARGIN_X].map(room => Math.max(20, room))
-  let rows = assemble(model, columns, rooms[0]!, ascii)
-  if (widest(rows) > columns - 2) rows = assemble(model, columns, rooms[1]!, ascii)
-  return { text: rows.chars.map(r => r.join('').trimEnd()).join('\n'), paint: { roles: rows.roles, hues: rows.hues, scopes: rows.scopes } }
+const labelOf = (wire: Wire) => wire.rels.map(r => r + 1).join(',')
+
+export const c4Layout = (model: C4Model, columns: number, ascii: boolean): C4Art | null => {
+  const wires = wiresOf(model.rels)
+  const gap = Math.max(GAP_X, ...wires.map(wire => labelOf(wire).length + 4))
+  const wide = laid(model, Math.max(20, columns - 2), gap)
+  const layout = wide.w + 2 * MARGIN_X <= columns - 2 ? wide : laid(model, Math.max(20, columns - 2 - 2 * MARGIN_X), gap)
+  const rows = assemble(model, columns, layout, layout.w <= columns - 2 ? wires : [], ascii)
+  return rows && { text: rows.chars.map(r => r.join('').trimEnd()).join('\n'), paint: { roles: rows.roles, hues: rows.hues, scopes: rows.scopes } }
 }
