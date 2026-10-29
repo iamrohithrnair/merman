@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] - 2026-10-29
+
+### Added
+
+- C4 diagrams draw in replies: mermaid `C4Context`, `C4Container`, `C4Component`, `C4Dynamic` and `C4Deployment` blocks, and C4-PlantUML in `plantuml` blocks. Each box shows its name in bold, its type in brackets and its description; boundaries and deployment nodes draw as nested frames, and external systems in the comment color. Relationships are numbered lines routed around the boxes, with a legend underneath, and pointing at a line or its legend row lights both. A diagram too large or too deeply nested to lay out quickly shows its source with the usual failure note, and a reply close to Claude Code's node limit drops the C4 hover highlights first. Contributed by Justin Lindh ([#1](https://github.com/iamrohithrnair/merman/pull/1)).
+- One-command install from the repo's own marketplace: `claude plugin marketplace add iamrohithrnair/merman && claude plugin install merman@merman`, and `claude plugin update merman@merman` to update.
+
 ## [0.1.0] - 2026-10-28
 
 First release of merman as its own project.
