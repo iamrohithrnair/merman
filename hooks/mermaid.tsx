@@ -108,7 +108,7 @@ export const mermaidText = (source: string, ascii: boolean, columns: number, pie
 
 const C4_CELLS_PER_ENTRY = 1000
 const C4_PICTURES = 256
-const C4_TREE_NODES = 16000
+const C4_TREE_NODES = 40000
 
 const cellWeight = (cells: number) => 1 + Math.floor(cells / C4_CELLS_PER_ENTRY)
 

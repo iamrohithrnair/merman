@@ -43,7 +43,7 @@ const shown = (cell: string) => {
 
 export const cellsWidth = (row: string[]): number => {
   let w = 0
-  for (let i = 0; i < row.length; i++) if (shown(row[i] || row[i - 1]!)) w++
+  for (let i = 0; i < row.length; i++) if (shown(row[i] || row[i - 1] || ' ')) w++
   return w
 }
 
