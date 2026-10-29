@@ -1,6 +1,6 @@
 import type { ElementTable, RenderElement } from 'claude-code'
 
-import { c4Model, isC4Kind } from './c4'
+import { c4Model, isC4Kind, plantUmlC4 } from './c4'
 import { c4Colors, c4Element } from './c4draw'
 import type { C4Paint } from './c4layout'
 import { c4Layout } from './c4layout'
@@ -346,13 +346,21 @@ export const shortenEdgeLabels = (source: string, max: number): string =>
 
 const pieColorsOf = (style: Style) => (style.pieStyle === 'round' ? diagramPalette(style.theme).length : 0)
 
+const PLANTUML = /^(plantuml|puml)$/i
+
+const sourceOf = (block: Extract<Block, { kind: 'code' }>): string | undefined => {
+  const text = block.lines.join('\n')
+  if (block.lang.toLowerCase() === 'mermaid') return text
+  return PLANTUML.test(block.lang) ? plantUmlC4(text) : undefined
+}
+
 type Diagram = NonNullable<ReturnType<Drawn['get']>>
 
 const waitsForFence = (block: Extract<Block, { kind: 'code' }>, source: string) => block.isOpen && isC4Kind(kindOf(source))
 
 const diagramOf = (el: ElementTable, style: Style, block: Extract<Block, { kind: 'code' }>, columns: number, key: string): Diagram | undefined => {
   caches = block.isOpen ? UNFINISHED : FINISHED
-  const source = block.lines.join('\n')
+  const source = sourceOf(block)!
   if (waitsForFence(block, source)) return undefined
   const pieColors = pieColorsOf(style)
   let narrowest = Infinity
@@ -396,7 +404,7 @@ export const drawDiagrams = (el: ElementTable, style: Style, blocks: Block[], co
   const drawn: Drawn = new Map()
   if (style.mermaid) {
     for (const [i, block] of blocks.entries()) {
-      if (block.kind !== 'code' || block.lang.toLowerCase() !== 'mermaid') continue
+      if (block.kind !== 'code' || sourceOf(block) === undefined) continue
       const diagram = diagramOf(el, style, block, columns, `b${i}`)
       if (diagram) drawn.set(i, diagram)
     }

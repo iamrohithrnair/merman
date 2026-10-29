@@ -247,6 +247,17 @@ C4Container
     Rel(mod, you, "Draws for")
 \`\`\`
 
+C4 written for C4-PlantUML draws the same from a \`plantuml\` block:
+
+\`\`\`plantuml
+@startuml
+!include <C4/C4_Context>
+Person(you, "You")
+System(mod, "merman", "Draws replies")
+Rel(you, mod, "Reads")
+@enduml
+\`\`\`
+
 A diagram wider than the terminal stays source, with a dim line saying why:
 
 \`\`\`mermaid

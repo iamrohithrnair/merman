@@ -25,13 +25,60 @@ const KIND = /^c4(context|container|component|dynamic|deployment)$/i
 
 export const isC4Kind = (kind: string) => KIND.test(kind)
 
+const PUML_INCLUDE = /^\s*!include\S*\s+\S*(<C4\/|C4_(Context|Container|Component|Dynamic|Deployment)\b)/m
+const PUML_ELEMENT = /^\s*(Person|System|Container|Component)(Db|Queue)?(_Ext)?\s*\(\s*\w+\s*,/m
+const PUML_KIND = /C4_(Context|Container|Component|Dynamic|Deployment)/
+const PUML_SKIP = /^(@start|@end|!|skinparam\b|LAYOUT_|SHOW_|HIDE_|'|AddElementTag|AddRelTag|AddBoundaryTag|UpdateLegend)/i
+const PUML_BLOCKS: [RegExp, RegExp][] = [
+  [/^skinparam\b.*\{$/i, /^\}$/],
+  [/^legend\b/i, /^endlegend\b/i],
+  [/^note\b(?!.*[:"])/i, /^end ?note\b/i],
+  [/^title$/i, /^end ?title\b/i],
+  [/^(header|footer)$/i, /^end ?(header|footer)\b/i],
+  [/^!(unquoted\s+)?(procedure|function|definelong)\b/i, /^!end(procedure|function|definelong)\b/i],
+]
+
+const uncommented = (source: string): string[] => {
+  const out: string[] = []
+  let open = false
+  for (const raw of source.replace(/\/'[\s\S]*?'\//g, '').split('\n')) {
+    if (open) open = !raw.includes("'/")
+    else if (raw.includes("/'")) {
+      open = true
+      out.push(raw.slice(0, raw.indexOf("/'")))
+    } else out.push(raw)
+  }
+  return out
+}
+
+const unblocked = (lines: string[]): string[] => {
+  const out: string[] = []
+  let until: RegExp | undefined
+  for (const line of lines) {
+    const t = line.trim()
+    if (until) {
+      if (until.test(t)) until = undefined
+      continue
+    }
+    until = PUML_BLOCKS.find(([open]) => open.test(t))?.[1]
+    if (!until && !PUML_SKIP.test(t)) out.push(line)
+  }
+  return out
+}
+
+export const plantUmlC4 = (source: string): string | undefined => {
+  if (!PUML_INCLUDE.test(source) && !PUML_ELEMENT.test(source)) return undefined
+  const kind = PUML_KIND.exec(source)?.[1] ?? 'Context'
+  return [`C4${kind}`, ...unblocked(uncommented(source))].join('\n')
+}
+
 export const isFrame = (item: C4Item): item is C4Frame => 'children' in item
 
 const ELEMENT = /^(person|system|container|component)(db|queue)?(_ext)?$/i
-const BOUNDARY = /^(boundary|enterprise_boundary|system_boundary|container_boundary|deployment_node|node|node_l|node_r)$/i
-const REL = /^(rel|birel|relindex|rel_(u|up|d|down|l|left|r|right|back))$/i
+const BOUNDARY = /^(boundary|enterprise_boundary|system_boundary|container_boundary|deployment_node(_l|_r)?|node|node_l|node_r)$/i
+const REL = /^(bi)?rel(index)?(_(u|up|d|down|l|left|r|right|back|neighbor|back_neighbor))?$/i
 const STATEMENT = /^(\w+)\s*\((.*)\)$/
-const TYPED_BOUNDARY = /^(boundary|deployment_node|node|node_l|node_r)$/i
+const TYPED_BOUNDARY = /^(boundary|deployment_node(_l|_r)?|node|node_l|node_r)$/i
 
 const SLOTS: Record<string, string[]> = {
   person: ['alias', 'label', 'descr'],
@@ -164,7 +211,7 @@ const readLine = (state: State, line: string) => {
   const element = ELEMENT.exec(name)
   if (element) addElement(state, element, body)
   else if (BOUNDARY.test(name)) addBoundary(state, name, body)
-  else if (REL.test(name)) state.rels.push([argsOf(body, SLOTS[name.toLowerCase() === 'relindex' ? 'relindex' : 'rel']!), name.toLowerCase()])
+  else if (REL.test(name)) state.rels.push([argsOf(body, SLOTS[/index/i.test(name) ? 'relindex' : 'rel']!), name.toLowerCase()])
 }
 
 const relOf = (state: State, [args, name]: [Args, string]): C4Rel | null => {
@@ -172,8 +219,8 @@ const relOf = (state: State, [args, name]: [Args, string]): C4Rel | null => {
   const to = state.ids.get(args.to ?? '')
   if (from === undefined || to === undefined) return null
   const label = [args.label, args.techn ? `[${args.techn}]` : undefined].filter(Boolean).join(' ')
-  const back = name === 'rel_back'
-  return { from: back ? to : from, to: back ? from : to, label, both: name === 'birel' }
+  const back = name.includes('back')
+  return { from: back ? to : from, to: back ? from : to, label, both: name.startsWith('birel') }
 }
 
 const pruned = (items: C4Item[]): C4Item[] =>

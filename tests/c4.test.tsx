@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { c4Model } from '../hooks/c4'
+import { c4Model, plantUmlC4 } from '../hooks/c4'
 import { mermaidText } from '../hooks/mermaid'
 import { PRESETS } from '../hooks/presets'
 import { width } from '../hooks/render'
@@ -238,4 +238,76 @@ test('C4 fits the terminal by wrapping boxes onto more rows and the legend onto 
 
 test('C4 queues draw with double side bars', () => {
   expect(art('C4Container\n  ContainerQueue(q, "Events", "Kafka")')).toMatch(/╟─+╢/)
+})
+
+const PUML = `@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+LAYOUT_TOP_DOWN()
+' who uses it
+Person(user, User)
+System_Boundary(shop, "Shop") {
+  Container(api, "API", "Go")
+}
+Rel_Neighbor(user, api, "Orders", "HTTPS")
+SHOW_LEGEND()
+@enduml`
+
+for (const lang of ['plantuml', 'puml']) {
+  test(`C4 written for C4-PlantUML in a ${lang} block draws like mermaid C4`, async $ => {
+    const ui = await $.ui.mount(mount('```' + lang + '\n' + PUML + '\n```'))
+    expect(await ui.find({ type: 'Text', text: new RegExp(`^── ${lang}$`) })).toBeUndefined()
+    expect(await ui.find({ text: /\[Container: Go\]/ })).toBeDefined()
+    expect(await ui.find({ text: /User → API {2}Orders \[HTTPS\]/ })).toBeDefined()
+    expect(await ui.find({ text: /@startuml|!include|LAYOUT_|SHOW_LEGEND/ })).toBeUndefined()
+    await ui.unmount()
+  })
+}
+
+test('PlantUML that is not C4 stays a plain code block with no note', async $ => {
+  const others = [
+    '@startuml\nAlice -> Bob: hi\n@enduml',
+    '@startuml\n!include https://raw.githubusercontent.com/acme/style/9c4e1d2/theme.puml\nAlice -> Bob : hi\n@enduml',
+    '@startuml\nclass Person {\n  Person(name: String)\n  getName(): String\n}\n@enduml',
+  ]
+  for (const source of others) {
+    const ui = await $.ui.mount(mount('```plantuml\n' + source + '\n```'))
+    expect(await ui.find({ type: 'Text', text: /^── plantuml$/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /failed to render|draw as source|cols, terminal/ })).toBeUndefined()
+    await ui.unmount()
+  }
+})
+
+const pumlArt = (body: string) => {
+  const source = plantUmlC4(`@startuml\n!include <C4/C4_Container>\n${body}\n@enduml`)
+  return source === undefined ? '' : art(source)
+}
+
+test('C4-PlantUML skips skinparam, legend, note, procedure and comment blocks', () => {
+  const blocks = [
+    'skinparam rectangle {\n  BackgroundColor red\n}',
+    'skinparam rectangle<<boundary>> {\n  BorderColor blue\n}',
+    "/'\nSystem(old, \"Old System\")\nRel(u, gone, \"x\")\n'/",
+    'legend right\nSystem(x, "in legend")\nendlegend',
+    'note right of u\nPerson(ghost, "Ghost")\nend note',
+    '!procedure $mk($a)\nSystem($a, "gen")\n!endprocedure',
+    '!definelong MK(x)\nPerson(x, "X")\n!enddefinelong',
+    'note "floating" as N1',
+    'title\nSystem(x, "in title")\nend title',
+  ]
+  for (const block of blocks) {
+    const drawn = pumlArt(`Person(u, "User")\n${block}\nSystem(s, "Sys")\nRel(u, s, "Uses") /' inline '/`)
+    expect(legend(drawn)).toContain('User → Sys  Uses')
+    expect(drawn).not.toMatch(/Old System|in legend|in title|Ghost|gen\b|\bX\b/)
+  }
+})
+
+test('C4-PlantUML Deployment_Node_L and Deployment_Node_R draw as frames', () => {
+  for (const macro of ['Deployment_Node_L', 'Deployment_Node_R']) expect(pumlArt(`${macro}(dn, "Server", "Ubuntu") {\n  Container(api, "API", "Go")\n}`)).toContain('Server [Ubuntu]')
+})
+
+test('C4-PlantUML relationship variants keep their direction', () => {
+  const drawn = legend(art('C4Context\n  System(a, "Alpha")\n  System(b, "Beta")\n  Rel_Back_Neighbor(a, b, "Reads")\n  BiRel_U(a, b, "Syncs")\n  Rel_Neighbor(a, b, "Calls")'))
+  expect(drawn).toContain('Beta → Alpha  Reads')
+  expect(drawn).toContain('Alpha ↔ Beta  Syncs')
+  expect(drawn).toContain('Alpha → Beta  Calls')
 })

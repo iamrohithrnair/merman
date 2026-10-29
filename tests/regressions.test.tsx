@@ -366,6 +366,7 @@ test('the help screen shows every element merman draws', async () => {
   expect(showcaseText([])).toContain('plain text')
   expect(showcaseText([])).toContain('line "east" [')
   expect(showcaseText([])).toContain('System_Boundary(cc, "Claude Code") {')
+  expect(showcaseText([])).toContain('!include <C4/C4_Context>')
   expect(blocks.some(b => b.kind === 'table' && b.align.includes('right') && b.align.includes('center'))).toBe(true)
   const kinds = new Set(blocks.map(b => b.kind))
   for (const kind of ['heading', 'paragraph', 'list', 'code', 'quote', 'alert', 'rule', 'table']) expect(kinds.has(kind as never)).toBe(true)
