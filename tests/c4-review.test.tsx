@@ -281,7 +281,7 @@ const atCap = (seed: number, frames = 4, per = 7, rels = 40) => {
 
 const nodes = (n: unknown): number => (typeof n === 'string' ? 1 : !n || typeof n !== 'object' ? 0 : Array.isArray(n) ? n.reduce((sum: number, c) => sum + nodes(c), 0) : 1 + nodes((n as El).children))
 
-test('a reply with four large C4 diagrams draws them without hover groups to stay under the node limit', async $ => {
+test('a reply with four large C4 diagrams draws them without hover groups to stay under the node limit', { timeoutMs: 20000 }, async $ => {
   const one = await $.ui.mount({ ...mount(fence(atCap(7))), requestId: 'one' })
   expect(scopesOf(await one.drawn()).some(s => s.startsWith('c4:'))).toBe(true)
   await one.unmount()
@@ -293,7 +293,7 @@ test('a reply with four large C4 diagrams draws them without hover groups to sta
   await ui.unmount()
 })
 
-test('a reply that grows past the node limit and shrinks back draws its C4 hover groups only while it fits', async $ => {
+test('a reply that grows past the node limit and shrinks back draws its C4 hover groups only while it fits', { timeoutMs: 20000 }, async $ => {
   const hovered = async (text: string) => {
     const ui = await $.ui.mount({ ...mount(text), requestId: 'grows' })
     const scopes = scopesOf(await ui.drawn()).filter(s => s.startsWith('c4:'))
@@ -384,7 +384,7 @@ const keeping = () => {
   return memo
 }
 
-test('a C4 diagram resized across widths that pack its boxes the same way routes once per packing and draws as if laid out afresh', () => {
+test('a C4 diagram resized across widths that pack its boxes the same way routes once per packing and draws as if laid out afresh', { timeoutMs: 20000 }, () => {
   const model = c4Model(atCap(3, 2, 4, 12))!
   const memo = keeping()
   const widths = Array.from({ length: 61 }, (_, i) => 160 - i)

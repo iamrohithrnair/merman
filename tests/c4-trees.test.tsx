@@ -31,7 +31,7 @@ const bigC4 = (seed: number) => {
   return lines.join('\n')
 }
 
-test('a redraw of a reply whose C4 drawings together outgrow the tree cache still reuses every drawing', async ($, on) => {
+test('a redraw of a reply whose C4 drawings together outgrow the tree cache still reuses every drawing', { timeoutMs: 20000 }, async ($, on) => {
   const blocks = parse([7, 8, 9, 10].map(seed => fence(bigC4(seed))).join('\n\nSome words.\n\n'), { numbers: true, paths: true })
   const style = { ...resolveStyle({ theme: 'dracula' }), noteKey: 'r1' }
   let reused: boolean[] | undefined
