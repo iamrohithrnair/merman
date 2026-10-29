@@ -6,10 +6,11 @@ import type { C4Paint, C4Picture } from './c4layout'
 import { c4Grid, c4Layout, c4Width } from './c4layout'
 import type { ChartArt } from './charts'
 import { ganttText, pieText } from './charts'
+import { idOf } from './drawings'
 import { drawFigure, isFigureLang } from './figure'
 import type { Block } from './markdown'
 import type { Drawn } from './render'
-import { cells, graphemes, heldLtr, mirrored, remember, width } from './render'
+import { cells, graphemes, heldLtr, mirrored, nodeCount, remember, width } from './render'
 import { hasRtl, holdEngine, holdRow, holdVisual, led } from './rtl'
 import type { Run } from './runs'
 import { drawRuns, joinRuns, lookOf } from './runs'
@@ -107,6 +108,7 @@ export const mermaidText = (source: string, ascii: boolean, columns: number, pie
 
 const C4_CELLS_PER_ENTRY = 1000
 const C4_PICTURES = 256
+const C4_TREE_NODES = 16000
 
 const cellWeight = (cells: number) => 1 + Math.floor(cells / C4_CELLS_PER_ENTRY)
 
@@ -293,6 +295,17 @@ const paintC4 = (style: Style, c4: C4Paint): Painted => {
   return done
 }
 
+const c4Trees = new Map<string, { tree: RenderElement; nodes: number }>()
+
+const c4Tree = (el: ElementTable, style: Style, painted: Painted, c4: C4Paint, key: string): RenderElement => {
+  const scopeKey = style.noteKey === undefined ? undefined : `${style.noteKey}:${key}`
+  const make = () => {
+    const tree = c4Element(el, style.theme, painted.grid, painted.colors, c4, key, scopeKey)
+    return { tree, nodes: nodeCount(tree) }
+  }
+  return remember(c4Trees, `${idOf(el)}\0${idOf(painted)}\0${key}\0${scopeKey ?? ''}`, make, C4_TREE_NODES, k => c4Trees.get(k)?.nodes ?? 1).tree
+}
+
 const painting = (style: Style, art: string, slices?: number[][], series?: number[][], c4?: C4Paint): Painted => {
   if (c4) return paintC4(style, c4)
   if (!slices) {
@@ -336,9 +349,10 @@ const heldCells = (style: Style, row: string[], visual: boolean) => (mirrored(st
 
 export const boxArt = (el: ElementTable, style: Style, art: string, key: string, marks: [string[], Mark][] = [], slices?: number[][], series?: number[][], c4?: C4Paint): RenderElement => {
   const { Box, Text } = el
-  const { grid, colors } = painting(style, art, slices, series, c4)
+  const painted = painting(style, art, slices, series, c4)
   const visual = style.reorder && style.shape === 'visual' && hasRtl(art)
-  if (c4 && !mirrored(style) && style.shape !== 'engine' && !visual) return c4Element(el, style.theme, grid, colors, c4, key, style.noteKey === undefined ? undefined : `${style.noteKey}:${key}`)
+  if (c4 && !mirrored(style) && style.shape !== 'engine' && !visual) return c4Tree(el, style, painted, c4, key)
+  const { grid, colors } = painted
   return (
     <Box key={key} flexDirection="column" paddingLeft={mirrored(style) ? 0 : 2}>
       {grid.map((row, i) => {

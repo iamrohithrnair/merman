@@ -293,6 +293,54 @@ test('a reply with four large C4 diagrams draws them without hover groups to sta
   await ui.unmount()
 })
 
+test('a reply that grows past the node limit and shrinks back draws its C4 hover groups only while it fits', async $ => {
+  const hovered = async (text: string) => {
+    const ui = await $.ui.mount({ ...mount(text), requestId: 'grows' })
+    const scopes = scopesOf(await ui.drawn()).filter(s => s.startsWith('c4:'))
+    await ui.unmount()
+    return scopes.length > 0
+  }
+  const one = fence(atCap(7))
+  const four = [7, 8, 9, 10].map(seed => fence(atCap(seed))).join('\n\nSome words.\n\n')
+  expect([await hovered(one), await hovered(four), await hovered(one)]).toEqual([true, false, true])
+})
+
+const colorsOf = (node: unknown, text: RegExp): string[] => {
+  if (!node || typeof node !== 'object') return []
+  const n = node as El & { props?: { color?: string } }
+  const own = n.props?.color !== undefined && (n.children ?? []).some(c => typeof c === 'string' && text.test(c)) ? [n.props.color] : []
+  return [...own, ...(n.children ?? []).flatMap(c => colorsOf(c, text))]
+}
+
+test('a C4 diagram redrawn with nothing changed reuses its tree, and draws a fresh one for another theme, width or hover group', async ($, on) => {
+  const blocks = parse(fence(atCap(5, 2, 4, 12)), { numbers: true, paths: true })
+  const styles = { dracula: resolveStyle({ theme: 'dracula' }), nord: resolveStyle({ theme: 'nord' }) }
+  let seen: Record<string, boolean> | undefined
+  on('ui.render', ($, e) => {
+    const el = $.ui.resolve(e)
+    const draw = (theme: keyof typeof styles, columns: number, noteKey: string) => drawDiagrams(el, { ...styles[theme], noteKey }, blocks, columns).get(0)!
+    if (!seen) {
+      const first = draw('dracula', 120, 'r1')
+      const again = draw('dracula', 120, 'r1')
+      const nord = draw('nord', 120, 'r1').element
+      const other = draw('dracula', 120, 'r2').element
+      seen = {
+        reused: again.element === first.element && again.lean!() === first.lean!(),
+        hovered: scopesOf(first.element).some(s => s.startsWith('c4:r1:')),
+        lean: first.lean!() !== first.element && !scopesOf(first.lean!()).some(s => s.startsWith('c4:')),
+        theme: nord !== first.element && colorsOf(nord, /►/).every(c => c === styles.nord.theme.accent) && colorsOf(nord, /►/).length > 0,
+        width: draw('dracula', 119, 'r1').element !== first.element,
+        scope: other !== first.element && scopesOf(other).some(s => s.startsWith('c4:r2:')) && !scopesOf(other).some(s => s.startsWith('c4:r1:')),
+        back: draw('dracula', 120, 'r1').element === first.element,
+      }
+    }
+    return <el.Text>engine</el.Text>
+  })
+  const ui = await $.ui.mount(mount(''))
+  await ui.unmount()
+  expect(seen).toEqual({ reused: true, hovered: true, lean: true, theme: true, width: true, scope: true, back: true })
+})
+
 const tooWide = (seed: number) => fence(['C4Container', ...Array.from({ length: 30 }, (_, i) => `  Container(e${i}, "S${i} ${seed}", "${'t'.repeat(100)}")`)].join('\n'))
 
 test('large C4 drawings take more room in the diagram cache than small ones', async ($, on) => {
