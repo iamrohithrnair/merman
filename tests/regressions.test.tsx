@@ -365,6 +365,7 @@ test('the help screen shows every element merman draws', async () => {
   expect(showcaseText([])).toContain('CopyQ')
   expect(showcaseText([])).toContain('plain text')
   expect(showcaseText([])).toContain('line "east" [')
+  expect(showcaseText([])).toContain('System_Boundary(cc, "Claude Code") {')
   expect(blocks.some(b => b.kind === 'table' && b.align.includes('right') && b.align.includes('center'))).toBe(true)
   const kinds = new Set(blocks.map(b => b.kind))
   for (const kind of ['heading', 'paragraph', 'list', 'code', 'quote', 'alert', 'rule', 'table']) expect(kinds.has(kind as never)).toBe(true)
@@ -456,7 +457,7 @@ test('a mounted diagram with wide labels draws its box borders on the same colum
 
 test('every diagram on the help screen draws as art', async () => {
   const diagrams = parse(showcaseText(Object.keys(PRESETS)), hl).flatMap(b => (b.kind === 'code' && b.lang === 'mermaid' ? [b.lines.join('\n')] : []))
-  expect(diagrams.length).toBe(7)
+  expect(diagrams.length).toBe(8)
   for (const source of diagrams) expect(mermaidText(source, false, 100)).not.toBeNull()
 })
 
@@ -1478,7 +1479,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
     const scopes: string[][] = []
     for (const requestId of ['m1', 'm2']) {
       const ui = await $.ui.mount({ ...mount(NOTED), surface, requestId })
-      scopes.push(hoverScopes((await ui.drawn()) as DrawnNode))
+      scopes.push(hoverScopes((await ui.drawn()) as DrawnNode).filter(s => s.startsWith('fn:')))
       await ui.unmount()
     }
     expect(scopes.map(s => s.length)).toEqual([2, 2])
@@ -1490,7 +1491,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
     const scopes: string[][] = []
     for (const requestId of ['c1', 'c2']) {
       const ui = await $.ui.mount({ ...DEMO, surface, requestId })
-      scopes.push(hoverScopes((await ui.drawn()) as DrawnNode))
+      scopes.push(hoverScopes((await ui.drawn()) as DrawnNode).filter(s => s.startsWith('fn:')))
       await ui.unmount()
     }
     expect(scopes.map(s => s.length)).toEqual([6, 6])

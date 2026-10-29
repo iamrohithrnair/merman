@@ -123,7 +123,7 @@ Measured with `npm --prefix scripts run bench` (200 runs, Node 24, Apple M4 Pro)
 | [Themes](#themes) | `/merman theme <name>` switches on the spot. 17 themes and 20 color slots you can override |
 | [Tables](#tables) | colored headers, rules, column alignment, colored numbers, sized to the terminal |
 | [Code](#code) | a language header and copy button, Prism highlighting in two dozen languages, shell lines colored like a prompt |
-| [Diagrams and charts](#diagrams-and-charts) | flowcharts, sequence, state, class and ER diagrams, bar and line charts, one color per box, participant and bar |
+| [Diagrams and charts](#diagrams-and-charts) | flowcharts, sequence, state, class, ER and C4 diagrams, bar and line charts, one color per box, participant and bar |
 | [Figures](#figures) | ` ```figure ` text pictures drawn as written in the theme's colors, for timelines, layouts and before and after; glyphs and markup checked before they are drawn |
 | [LaTeX math](#latex-math) | `$$` and ` ```math ` formulas typeset as images in kitty and Ghostty by [RaTeX](https://github.com/erweixin/RaTeX), text everywhere else |
 | [Layout](#layout) | back-to-back tables and diagrams sit side by side and wrap on narrow terminals |
@@ -162,6 +162,7 @@ Code blocks tagged `mermaid` draw as colored text art:
 
 - flowcharts (`graph LR`, `graph TD`, decisions), sequence, state, class and ER diagrams
 - bar and line charts with `xychart-beta`, sized to the terminal width
+- C4 context, container, component, dynamic and deployment diagrams, laid out by merman itself: each box shows its name in bold, its type in brackets (`[Container: Go]`) and its description, boundaries and deployment nodes draw as frames inside frames, and external elements draw in the comment color. Each relationship is a numbered line, and a legend under the diagram spells out who talks to whom, the label and the technology; dynamic diagrams number their steps in order, and relationships between the same two boxes in the same direction share one line labelled with all their numbers, like `1,3`. Pointing at a line or its legend row lights both. A relationship from a box to itself, or one with no free path, is listed in the legend in the comment color with no line. Boxes wrap onto more rows and the legend onto more lines to fit the terminal, and a diagram still streaming in shows as source until its fence closes. Style and layout statements (`UpdateElementStyle`, `Rel_U`, `Lay_R`) are skipped, and a relationship that points at a boundary rather than a box leaves the diagram as source
 - `pie` charts as a circle with a colored legend, largest slice first, and `gantt` schedules as bars on a shared date or time axis, starting on a half cell and ending on an eighth so close durations draw apart
 - each box and participant gets its own theme color, the same at both ends of a sequence diagram
 - bars in a multi-series chart get their own colors; a single-series chart prints each value above its bar and colors the tallest one

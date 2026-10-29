@@ -530,61 +530,272 @@
       "flowchart TD"
     <Text color=#cdd6f4>
       "  Q[Queue] --> W1[Worker 1] & W2[Worker 2] & W3[Worker 3] & W4[Worker 4] & W5[Worker 5] & W6[Worker 6] & W7[Worker 7] & W8[Worker 8] & W9[Worker 9] & W10[Worker 10] & W11[Worker 11] & W12[Worker 12]"
-<Box>
-  <Text>
-    <Text color=#6c7086>
-      "timeout at 10 s, handler books at 12 s, retry books again"
-  <Text>
-    <Text color=#cdd6f4>
-      "          "
-    <Text color=#f9e2af>
-      "0 s"
-    <Text color=#cdd6f4>
-      "           "
-    <Text color=#f9e2af>
-      "10 s"
-    <Text color=#cdd6f4>
-      "  "
-    <Text color=#f9e2af>
-      "12 s"
-    <Text color=#cdd6f4>
-      "              "
-    <Text color=#f9e2af>
-      "later"
-  <Text>
-    <Text color=#cdd6f4>
-      "          "
-    <Text color=#89b4fa>
-      "▏─────────────▏─────▏─────────────────▏"
-  <Text>
-    <Text color=#cdd6f4>
-      "Provider  "
-    <Text color=#89b4fa>
-      "██████████████"
-    <Text color=#f38ba8>
-      "✗"
-    <Text color=#cdd6f4>
-      " timeout               "
-    <Text color=#89b4fa>
-      "█"
-    <Text color=#cdd6f4>
-      " retry"
-  <Text>
-    <Text color=#cdd6f4>
-      "Handler   "
-    <Text color=#a6e3a1>
-      "████████████████████"
-    <Text color=#cdd6f4>
-      " 200, nobody waits"
-  <Text>
-    <Text color=#cdd6f4>
-      "Bookings  0                   "
-    <Text color=#a6e3a1>
-      "1"
-    <Text color=#cdd6f4>
-      "                 "
-    <Text color=#f38ba8>
-      "2 twice"
+<Box row>
+  <Box>
+    <Box>
+      <Text>
+        <Text color=#cdd6f4 bold>
+          "Bakery orders"
+      <Text>
+        <Text color=#89b4fa>
+          "╭──────────╮      "
+        <Text color=#6c7086>
+          "┌────────────────────────────┐"
+      <Text>
+        <Text color=#89b4fa>
+          "│  "
+        <Text color=#89b4fa bold>
+          "Baker   "
+        <Text color=#89b4fa>
+          "│      "
+        <Text color=#6c7086>
+          "│          "
+        <Text color=#6c7086 bold>
+          "Payments          "
+        <Text color=#6c7086>
+          "│"
+      <Text>
+        <Text color=#89b4fa>
+          "│ [Person] │      "
+        <Text color=#6c7086>
+          "│ [External Software System] │"
+      <Box row>
+        <Text color=#89b4fa>
+          "╰─────"
+        <Text color=#89b4fa>
+          "┬"
+        <Text color=#89b4fa>
+          "────╯      "
+        <Text color=#6c7086>
+          "└───"
+        <Text color=#89b4fa>
+          "┬"
+        <Text color=#6c7086>
+          "────────────────────────┘"
+      <Box row>
+        <Text>
+          "      "
+        <Text color=#89b4fa>
+          "│"
+        <Text>
+          "               "
+        <Text color=#89b4fa>
+          "│"
+      <Box row>
+        <Text>
+          "      "
+        <Text color=#a6e3a1>
+          "1"
+        <Text>
+          "               "
+        <Text color=#89b4fa>
+          "│"
+      <Box row>
+        <Text>
+          "      "
+        <Text color=#89b4fa>
+          "│"
+        <Text>
+          "               "
+        <Text color=#89b4fa>
+          "│"
+      <Box row>
+        <Text color=#89b4fa>
+          "┌─────"
+        <Text color=#89b4fa>
+          "│"
+        <Text color=#89b4fa>
+          "───────────────"
+        <Text color=#89b4fa>
+          "│"
+        <Text color=#89b4fa>
+          "────────────────────────────┐"
+      <Box row>
+        <Text color=#89b4fa>
+          "│     "
+        <Text color=#89b4fa>
+          "│"
+        <Text>
+          "               "
+        <Text color=#89b4fa>
+          "│"
+        <Text color=#cdd6f4>
+          " Shop                       "
+        <Text color=#89b4fa>
+          "│"
+      <Box row>
+        <Text color=#89b4fa>
+          "│     "
+        <Text color=#cba6f7>
+          "▼"
+        <Text>
+          "               "
+        <Text color=#a6e3a1>
+          "2"
+        <Text color=#89b4fa>
+          "                            │"
+      <Box row>
+        <Text color=#89b4fa>
+          "│ "
+        <Text color=#f9e2af>
+          "┌─────────────────┐ "
+        <Text color=#89b4fa>
+          "│"
+        <Text color=#f5c2e7>
+          "    ╭─────────────────────╮ "
+        <Text color=#89b4fa>
+          "│"
+      <Box row>
+        <Text color=#89b4fa>
+          "│ "
+        <Text color=#f9e2af>
+          "│     "
+        <Text color=#f9e2af bold>
+          "Orders      "
+        <Text color=#f9e2af>
+          "│"
+        <Text color=#cba6f7>
+          "◄"
+        <Text color=#89b4fa>
+          "┘"
+        <Text color=#f5c2e7>
+          "    │       "
+        <Text color=#f5c2e7 bold>
+          "Ledger        "
+        <Text color=#f5c2e7>
+          "│ "
+        <Text color=#89b4fa>
+          "│"
+      <Box row>
+        <Text color=#89b4fa>
+          "│ "
+        <Text color=#f9e2af>
+          "│ [Container: Go] "
+        <Text color=#89b4fa>
+          "├───"
+        <Text color=#a6e3a1>
+          "3"
+        <Text color=#89b4fa>
+          "─"
+        <Text color=#cba6f7>
+          "►"
+        <Text color=#f5c2e7>
+          "│ [Container: SQLite] │ "
+        <Text color=#89b4fa>
+          "│"
+      <Text>
+        <Text color=#89b4fa>
+          "│ "
+        <Text color=#f9e2af>
+          "│  Takes orders   │      "
+        <Text color=#f5c2e7>
+          "╰─────────────────────╯ "
+        <Text color=#89b4fa>
+          "│"
+      <Text>
+        <Text color=#89b4fa>
+          "│ "
+        <Text color=#f9e2af>
+          "└─────────────────┘                              "
+        <Text color=#89b4fa>
+          "│"
+      <Text>
+        <Text color=#89b4fa>
+          "│                                                  │"
+      <Text>
+        <Text color=#89b4fa>
+          "└──────────────────────────────────────────────────┘"
+      <Text>
+        " "
+      <Box row>
+        <Text color=#a6e3a1>
+          " 1  "
+        <Text color=#89b4fa bold>
+          "Baker "
+        <Text color=#cdd6f4>
+          "→ "
+        <Text color=#f9e2af bold>
+          "Orders  "
+        <Text color=#cdd6f4>
+          "Uses"
+      <Box row>
+        <Text color=#a6e3a1>
+          " 2  "
+        <Text color=#6c7086 bold>
+          "Payments "
+        <Text color=#cdd6f4>
+          "→ "
+        <Text color=#f9e2af bold>
+          "Orders  "
+        <Text color=#cdd6f4>
+          "Confirms [HTTPS]"
+      <Box row>
+        <Text color=#a6e3a1>
+          " 3  "
+        <Text color=#f9e2af bold>
+          "Orders "
+        <Text color=#cdd6f4>
+          "→ "
+        <Text color=#f5c2e7 bold>
+          "Ledger  "
+        <Text color=#cdd6f4>
+          "Writes"
+  <Box>
+    <Box>
+      <Text>
+        <Text color=#6c7086>
+          "timeout at 10 s, handler books at 12 s, retry books again"
+      <Text>
+        <Text color=#cdd6f4>
+          "          "
+        <Text color=#f9e2af>
+          "0 s"
+        <Text color=#cdd6f4>
+          "           "
+        <Text color=#f9e2af>
+          "10 s"
+        <Text color=#cdd6f4>
+          "  "
+        <Text color=#f9e2af>
+          "12 s"
+        <Text color=#cdd6f4>
+          "              "
+        <Text color=#f9e2af>
+          "later"
+      <Text>
+        <Text color=#cdd6f4>
+          "          "
+        <Text color=#89b4fa>
+          "▏─────────────▏─────▏─────────────────▏"
+      <Text>
+        <Text color=#cdd6f4>
+          "Provider  "
+        <Text color=#89b4fa>
+          "██████████████"
+        <Text color=#f38ba8>
+          "✗"
+        <Text color=#cdd6f4>
+          " timeout               "
+        <Text color=#89b4fa>
+          "█"
+        <Text color=#cdd6f4>
+          " retry"
+      <Text>
+        <Text color=#cdd6f4>
+          "Handler   "
+        <Text color=#a6e3a1>
+          "████████████████████"
+        <Text color=#cdd6f4>
+          " 200, nobody waits"
+      <Text>
+        <Text color=#cdd6f4>
+          "Bookings  0                   "
+        <Text color=#a6e3a1>
+          "1"
+        <Text color=#cdd6f4>
+          "                 "
+        <Text color=#f38ba8>
+          "2 twice"
 <Box>
   <Box row>
     <Text color=#6c7086>
