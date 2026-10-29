@@ -8,7 +8,7 @@
     {
       "name": "merman",
       "description": "Mermaid diagrams, tables and code drawn in color in Claude Code replies.",
-      "source": { "source": "github", "repo": "iamrohithrnair/merman", "ref": "v0.2.0", "sha": "a4d9a2887607b05ec3edb740f307752cd311a38e" },
+      "source": { "source": "github", "repo": "iamrohithrnair/merman", "ref": "v0.2.1", "sha": "070c8d9c5eb6dd5ae9352ab021a25d3c382bfd1d" },
       "version": "0.2.1",
       "category": "appearance",
       "tags": ["mod", "mermaid", "markdown", "tables", "theme"]
