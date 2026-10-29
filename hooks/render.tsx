@@ -1,6 +1,7 @@
 import type { ElementTable, RenderElement, RenderNode, TextHoverProps } from 'claude-code'
 
 import type { ChartArt } from './charts'
+import { nodeCount } from './drawings'
 import { tableHtml, tableText } from './html'
 import type { Block, Inline } from './markdown'
 import { mathOf } from './latex'
@@ -827,14 +828,7 @@ const viewBody = (el: ElementTable, style: Style, block: CodeBlock, view: CodeVi
   return codeBody(el, style, rows, view.plain ? 0 : view.gutter, view.held, view.toggle?.element ?? null)
 }
 
-export const nodeCount = (node: unknown): number => {
-  if (typeof node === 'string' || typeof node === 'number') return 1
-  if (node === null || typeof node !== 'object') return 0
-  if (!Array.isArray(node)) return 1 + nodeCount((node as { children?: unknown }).children)
-  let n = 0
-  for (let i = 0; i < node.length; i++) n += nodeCount(node[i])
-  return n
-}
+export { nodeCount }
 
 export const NODE_BUDGET = 18000
 

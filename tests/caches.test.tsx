@@ -200,6 +200,14 @@ test('kept drawings stay under their budget, the newest kept', () => {
   expect(reusedDrawing('budget-b', '', 'b'.repeat(60), [])).toBe(element)
 })
 
+test('kept drawings weigh their tree as well as their text', () => {
+  const tree = { type: 'Box', props: {}, children: Array.from({ length: 40 }, () => ({ type: 'Text', props: {}, children: ['x'] })) } as unknown as RenderElement
+  keptDrawing('tree-a', { key: '', text: 'a', folds: new Map(), element: tree }, 200)
+  keptDrawing('tree-b', { key: '', text: 'b', folds: new Map(), element: tree }, 200)
+  expect(reusedDrawing('tree-a', '', 'a', [])).toBeUndefined()
+  expect(reusedDrawing('tree-b', '', 'b', [])).toBe(tree)
+})
+
 test('a reply redrawn only because it scrolled draws the same, and its fold still opens', async $ => {
   const text = '```ts\n' + Array.from({ length: 40 }, (_, i) => `const v${i} = ${i}`).join('\n') + '\n```'
   const ui = await $.ui.mount(mount(text))

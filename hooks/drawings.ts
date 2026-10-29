@@ -4,7 +4,11 @@ export type Drawing = { key: string; text: string; folds: Map<string, boolean>; 
 
 export const DRAWING_BUDGET = 1 << 17
 
-const drawings = new Map<string, Drawing>()
+const NODE_WEIGHT = 3
+
+type Kept = Drawing & { weight: number }
+
+const drawings = new Map<string, Kept>()
 let weight = 0
 let count = 0
 const ids = new WeakMap<object, number>()
@@ -56,16 +60,26 @@ export const drawnPlain = async <T extends RenderElement | undefined>(id: string
 export const memoized = <T extends RenderElement | undefined>(id: string, key: string, text: string, open: readonly string[], memo: boolean, draw: (folds: Map<string, boolean>) => T): RenderElement | T =>
   (memo ? reusedDrawing(id, key, text, open) : undefined) ?? fresh(id, key, text, memo, draw)
 
+export const nodeCount = (node: unknown): number => {
+  if (typeof node === 'string' || typeof node === 'number') return 1
+  if (node === null || typeof node !== 'object') return 0
+  if (!Array.isArray(node)) return 1 + nodeCount((node as { children?: unknown }).children)
+  let n = 0
+  for (let i = 0; i < node.length; i++) n += nodeCount(node[i])
+  return n
+}
+
 export const keptDrawing = (id: string, d: Drawing, budget = DRAWING_BUDGET): RenderElement => {
   const old = drawings.get(id)
-  if (old) weight -= old.text.length
+  if (old) weight -= old.weight
   drawings.delete(id)
-  drawings.set(id, d)
-  weight += d.text.length
-  for (const [key, kept] of drawings) {
+  const kept: Kept = { ...d, weight: Math.max(d.text.length, nodeCount(d.element) * NODE_WEIGHT) }
+  drawings.set(id, kept)
+  weight += kept.weight
+  for (const [key, entry] of drawings) {
     if (weight <= budget || drawings.size <= 1) break
     drawings.delete(key)
-    weight -= kept.text.length
+    weight -= entry.weight
   }
   return d.element
 }
