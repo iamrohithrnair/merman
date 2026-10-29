@@ -7,7 +7,7 @@ export const ROLE = { blank: 0, frame: 1, frameLabel: 2, box: 3, name: 4, line: 
 export const EXTERNAL = -2
 
 export type C4Part = { lines: string[]; grid?: string[][]; width?: number }
-export type C4Paint = { roles: number[][]; hues: number[][]; scopes: number[][]; parts: C4Part[] }
+export type C4Paint = { roles: Uint8Array[]; hues: Int16Array[]; scopes: Int32Array[]; parts: C4Part[] }
 export type C4Art = { text: string; paint: C4Paint }
 type Section = C4Part & Omit<C4Paint, 'parts'>
 export type C4Picture = { section: Section; span: number; routed: boolean[]; size: number }
@@ -538,7 +538,26 @@ const legendEntry = (model: C4Model, rel: C4Rel, i: number, room: number, scope:
 
 const asciiRows = (rows: Rows): Rows => ({ ...rows, chars: rows.chars.map(r => r.map(ch => ASCII[ch] ?? (/[┌┐└┘├┤┬┴┼╭╮╰╯╟╢]/.test(ch) ? '+' : ch))) })
 
-const sectionOf = (rows: Rows, ascii: boolean): Section => ({ lines: (ascii ? asciiRows(rows) : rows).chars.map(r => r.join('').trimEnd()), roles: rows.roles, hues: rows.hues, scopes: rows.scopes })
+const rowsIn = <T extends Uint8Array | Int16Array | Int32Array>(all: T, rows: number[][]): T[] => {
+  let at = 0
+  return rows.map(row => {
+    const view = all.subarray(at, at + row.length) as T
+    view.set(row)
+    at += row.length
+    return view
+  })
+}
+
+const sectionOf = (rows: Rows, ascii: boolean): Section => {
+  const n = rows.roles.reduce((sum, row) => sum + row.length, 0)
+  const buffer = new ArrayBuffer(7 * n)
+  return {
+    lines: (ascii ? asciiRows(rows) : rows).chars.map(r => r.join('').trimEnd()),
+    scopes: rowsIn(new Int32Array(buffer, 0, n), rows.scopes),
+    hues: rowsIn(new Int16Array(buffer, 4 * n, n), rows.hues),
+    roles: rowsIn(new Uint8Array(buffer, 6 * n, n), rows.roles),
+  }
+}
 
 const gridOf = (part: C4Part) => (part.grid ??= part.lines.map(cells))
 

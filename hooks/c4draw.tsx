@@ -14,8 +14,13 @@ const roleColor = (t: Theme, palette: string[], role: number, hue: number): stri
   return t.diagramText
 }
 
-export const c4Colors = (paint: C4Paint, t: Theme, palette: string[]): (string | undefined)[][] =>
-  paint.roles.map((row, r) => row.map((role, c) => roleColor(t, palette, role, paint.hues[r]![c]!)))
+const rowColors = (t: Theme, palette: string[], roles: Uint8Array, hues: Int16Array): (string | undefined)[] => {
+  const out: (string | undefined)[] = new Array(roles.length)
+  for (let c = 0; c < roles.length; c++) out[c] = roleColor(t, palette, roles[c]!, hues[c]!)
+  return out
+}
+
+export const c4Colors = (paint: C4Paint, t: Theme, palette: string[]): (string | undefined)[][] => paint.roles.map((row, r) => rowColors(t, palette, row, paint.hues[r]!))
 
 type Cell = { text: string; color?: string; bold: boolean; scope: number; legend: boolean }
 
