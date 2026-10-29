@@ -2,8 +2,8 @@ import type { ElementTable, RenderElement } from 'claude-code'
 
 import { c4Model, isC4Kind, plantUmlC4 } from './c4'
 import { c4Colors, c4Element } from './c4draw'
-import type { C4Paint } from './c4layout'
-import { c4Layout } from './c4layout'
+import type { C4Paint, C4Picture } from './c4layout'
+import { c4Grid, c4Layout, c4Width } from './c4layout'
 import type { ChartArt } from './charts'
 import { ganttText, pieText } from './charts'
 import { drawFigure, isFigureLang } from './figure'
@@ -106,8 +106,19 @@ const artWidth = (art: string) => remember(caches.widths, art, () => Math.max(..
 export const mermaidText = (source: string, ascii: boolean, columns: number, pieColors = 0): string | null => mermaidArt(source, ascii, columns, pieColors)?.text ?? null
 
 const C4_CELLS_PER_ENTRY = 1000
+const C4_PICTURES = 256
 
-const weightOf = (art: ChartArt | null | undefined) => (art?.c4 ? 1 + Math.floor(art.c4.roles.reduce((n, row) => n + row.length, 0) / C4_CELLS_PER_ENTRY) : 1)
+const cellWeight = (cells: number) => 1 + Math.floor(cells / C4_CELLS_PER_ENTRY)
+
+const paintedCells = (c4: C4Paint) => c4.roles.reduce((n, row) => n + row.length, 0)
+
+const weightOf = (art: ChartArt | null | undefined) => (art?.c4 ? cellWeight(paintedCells(art.c4)) : 1)
+
+const c4Pictures = new Map<string, C4Picture | null>()
+
+const pictureWeight = (key: string) => cellWeight(c4Pictures.get(key)?.size ?? 0)
+
+const widthOf = (art: ChartArt) => (art.c4 ? c4Width(art.c4) : artWidth(art.text))
 
 const mermaidArt = (source: string, ascii: boolean, columns: number, pieColors: number): ChartArt | null => {
   const tint = kindOf(source).toLowerCase() === 'pie' ? pieColors : 0
@@ -126,7 +137,7 @@ const mermaidArt = (source: string, ascii: boolean, columns: number, pieColors: 
 
 const c4Art = (source: string, ascii: boolean, columns: number): ChartArt | null => {
   const model = c4Model(source)
-  const art = model && c4Layout(model, columns, ascii)
+  const art = model && c4Layout(model, columns, ascii, (key, make) => remember(c4Pictures, `${key}\0${source}`, make, C4_PICTURES, pictureWeight))
   return art ? { text: art.text, c4: art.paint } : null
 }
 
@@ -274,16 +285,16 @@ const piePainted = new WeakMap<Theme, WeakMap<number[][], Painted>>()
 
 const c4Painted = new WeakMap<Theme, WeakMap<C4Paint, Painted>>()
 
-const paintC4 = (style: Style, art: string, c4: C4Paint): Painted => {
+const paintC4 = (style: Style, c4: C4Paint): Painted => {
   const cache = c4Painted.get(style.theme) ?? new WeakMap<C4Paint, Painted>()
   c4Painted.set(style.theme, cache)
-  const done = cache.get(c4) ?? { grid: art.split('\n').map(cells), colors: c4Colors(c4, style.theme, diagramPalette(style.theme)) }
+  const done = cache.get(c4) ?? { grid: c4Grid(c4), colors: c4Colors(c4, style.theme, diagramPalette(style.theme)) }
   cache.set(c4, done)
   return done
 }
 
 const painting = (style: Style, art: string, slices?: number[][], series?: number[][], c4?: C4Paint): Painted => {
-  if (c4) return paintC4(style, art, c4)
+  if (c4) return paintC4(style, c4)
   if (!slices) {
     const cache = caches.painted.get(style.theme) ?? new Map<string, Painted>()
     caches.painted.set(style.theme, cache)
@@ -377,7 +388,7 @@ const diagramOf = (el: ElementTable, style: Style, block: Extract<Block, { kind:
   for (const max of labelLimits(source)) {
     const art = mermaidArt(max === Infinity ? source : shortenEdgeLabels(source, max), style.mermaidAscii, columns, pieColors)
     if (max === Infinity) full = art
-    const wide = art === null ? Infinity : artWidth(art.text)
+    const wide = art === null ? Infinity : widthOf(art)
     narrowest = Math.min(narrowest, wide)
     if (art !== null && wide <= columns - 2) return { element: boxArt(el, style, art.text, key, inlineMarks(source), art.slices, art.series, art.c4), art: art.text, ...leanOf(el, style, art, key) }
   }
@@ -406,7 +417,7 @@ export const viewerProps = (style: Style, art: ChartArt, view: number): ViewerPr
   const palette: string[] = []
   const index = (hue?: string) => (hue ? (palette.includes(hue) ? palette.indexOf(hue) : palette.push(hue) - 1) : -1)
   const t = style.theme
-  return { rows: grid.map((row, r) => viewerRow(row, colors[r] ?? UNCOLORED, index)), palette, width: artWidth(art.text), view, bar: [t.accent ?? '', t.rule ?? '', t.codeComment ?? ''] }
+  return { rows: grid.map((row, r) => viewerRow(row, colors[r] ?? UNCOLORED, index)), palette, width: widthOf(art), view, bar: [t.accent ?? '', t.rule ?? '', t.codeComment ?? ''] }
 }
 
 const diagramAt = (el: ElementTable, style: Style, block: Block, columns: number, key: string): Diagram | undefined => {

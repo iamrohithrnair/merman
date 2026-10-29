@@ -1,10 +1,11 @@
 import { expect, test } from 'claude-code/testing'
 
 import { c4Model, plantUmlC4 } from '../hooks/c4'
-import { ROLE, c4Layout } from '../hooks/c4layout'
+import type { C4Picture, C4Pictures } from '../hooks/c4layout'
+import { ROLE, c4Grid, c4Layout, c4Width } from '../hooks/c4layout'
 import { parse } from '../hooks/markdown'
 import { drawDiagrams, mermaidText } from '../hooks/mermaid'
-import { width } from '../hooks/render'
+import { cells, width } from '../hooks/render'
 import { resolveStyle } from '../hooks/theme'
 
 const mount = (text: string, columns = 120) => ({
@@ -260,19 +261,20 @@ test('two C4 drawings made without a reply id do not share hover groups', async 
   expect(drawings[0]!.some(s => drawings[1]!.includes(s))).toBe(false)
 })
 
-const atCap = (seed: number) => {
+const atCap = (seed: number, frames = 4, per = 7, rels = 40) => {
   let at = seed
   const next = () => (at = (at * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff
+  const n = frames * per + 2
   const lines = ['C4Container']
-  for (let f = 0; f < 4; f++) {
+  for (let f = 0; f < frames; f++) {
     lines.push(`  System_Boundary(b${f}, "Group ${f}") {`)
-    for (let i = f * 7; i < f * 7 + 7; i++) lines.push(`    Container(e${i}, "Orders ${i}", "Go", "Takes orders from the web shop")`)
+    for (let i = f * per; i < f * per + per; i++) lines.push(`    Container(e${i}, "Orders ${i}", "Go", "Takes orders from the web shop")`)
     lines.push('  }')
   }
-  lines.push('  Person(e28, "Customer 28", "Buys bread online")', '  Person(e29, "Customer 29", "Buys cakes online")')
-  for (let j = 0; j < 40; j++) {
-    const a = Math.floor(next() * 30)
-    lines.push(`  Rel(e${a}, e${(a + 1 + Math.floor(next() * 29)) % 30}, "Calls ${j}", "HTTPS")`)
+  lines.push(`  Person(e${n - 2}, "Customer ${n - 2}", "Buys bread online")`, `  Person(e${n - 1}, "Customer ${n - 1}", "Buys cakes online")`)
+  for (let j = 0; j < rels; j++) {
+    const a = Math.floor(next() * n)
+    lines.push(`  Rel(e${a}, e${(a + 1 + Math.floor(next() * (n - 1))) % n}, "Calls ${j}", "HTTPS")`)
   }
   return lines.join('\n')
 }
@@ -320,6 +322,65 @@ test('a theme with another number of colors repaints a C4 drawing without laying
   const ui = await $.ui.mount(mount(''))
   await ui.unmount()
   expect(seen[0] !== undefined && seen[1] === seen[0]).toBe(true)
+})
+
+const keeping = () => {
+  const kept = new Map<string, C4Picture | null>()
+  const memo = { routed: 0, pictures: ((key, make) => {
+    if (!kept.has(key)) {
+      memo.routed++
+      kept.set(key, make())
+    }
+    return kept.get(key)!
+  }) as C4Pictures }
+  return memo
+}
+
+test('a C4 diagram resized across widths that pack its boxes the same way routes once per packing and draws as if laid out afresh', () => {
+  const model = c4Model(atCap(3, 2, 4, 12))!
+  const memo = keeping()
+  const widths = Array.from({ length: 61 }, (_, i) => 160 - i)
+  for (const columns of widths) expect(c4Layout(model, columns, false, memo.pictures)).toEqual(c4Layout(model, columns, false))
+  expect(memo.routed).toBeGreaterThan(1)
+  expect(memo.routed).toBeLessThan(widths.length / 4)
+})
+
+const drawnOf = (art: ReturnType<typeof c4Layout>) => JSON.stringify(art && [art.text, ...[art.paint.roles, art.paint.hues, art.paint.scopes].map(rows => rows.map(row => [...row])), art.paint.parts.map(part => part.lines)])
+
+test('random C4 diagrams share pictures across widths and ASCII modes without drawing anything differently', { timeoutMs: 20000 }, () => {
+  let seed = 913
+  const next = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff
+  for (let k = 0; k < 10; k++) {
+    const source = k % 2 ? framedC4(next) : randomC4(next)
+    const memo = keeping()
+    for (const ascii of [false, true])
+      for (const columns of [140, 120, 100, 90, 80, 70, 60, 50, 40]) {
+        const fresh = c4Layout(c4Model(source)!, columns, ascii)!
+        const lines = fresh.text.split('\n')
+        const shared = c4Layout(c4Model(source)!, columns, ascii, memo.pictures)!
+        const same = drawnOf(shared) === drawnOf(fresh) && JSON.stringify(c4Grid(shared.paint)) === JSON.stringify(c4Grid(fresh.paint)) && c4Width(shared.paint) === c4Width(fresh.paint)
+        const measured = JSON.stringify(c4Grid(fresh.paint)) === JSON.stringify(lines.map(cells)) && c4Width(fresh.paint) === Math.max(...lines.map(width))
+        expect({ source, columns, ascii, same, measured }).toEqual({ source, columns, ascii, same: true, measured: true })
+      }
+  }
+})
+
+test('C4 pictures shared between widths are weighed by size, so big drawings push out old ones', async ($, on) => {
+  const shared: boolean[] = []
+  on('ui.render', ($, e) => {
+    const el = $.ui.resolve(e)
+    const firstRow = (seed: number, columns: number) => drawDiagrams(el, resolveStyle({}), parse(tooWide(seed), { numbers: true, paths: true }), columns).get(0)?.full?.c4?.roles[0]
+    if (!shared.length) {
+      const first = firstRow(500, 80)
+      shared.push(first !== undefined && firstRow(500, 81) === first)
+      for (let seed = 501; seed <= 520; seed++) firstRow(seed, 80)
+      shared.push(firstRow(500, 82) === first)
+    }
+    return <el.Text>engine</el.Text>
+  })
+  const ui = await $.ui.mount(mount(''))
+  await ui.unmount()
+  expect(shared).toEqual([true, false])
 })
 
 test('a long C4 title wraps and a long frame label ends in an ellipsis to fit the terminal', () => {

@@ -3,7 +3,7 @@ import { test } from './tool-rows'
 
 import { parse } from '../hooks/markdown'
 import { PRESETS } from '../hooks/presets'
-import { MARK, width } from '../hooks/render'
+import { MARK, cells, cellsWidth, width } from '../hooks/render'
 import { resolveStyle } from '../hooks/theme'
 import { clipboardEnv, startSession } from './clipboard-env'
 import { paintOf, paintsOf, runsOf, shownLines } from './paint'
@@ -572,4 +572,14 @@ test('two code blocks that differ only in where lines break fold on their own', 
   expect((await ui.find({ key: 'fold0' }))?.props.label).toBe('show less')
   expect((await ui.find({ key: 'fold2' }))?.props.label).toBe('+11 more lines')
   await ui.unmount()
+})
+
+plainTest('a row counted from its cells is as wide as its text, for wide, joined, zero-width and box-drawing characters', () => {
+  const pool = [...' az~│─┌►…→', '\u00ad', '\u200b', '\u200d', '\u0301', '\u20e3', '\ufe0f', '漢', 'ｱ', '한', 'ᄀ', 'ᅡ', 'क', 'ा', 'ש', '🇺', '🇸', '👍', '🏽', '◽', '▶', '\u3000', '\u{20000}', '\u{e0041}', '\t']
+  let seed = 17
+  const next = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) % pool.length
+  for (let k = 0; k < 4000; k++) {
+    const text = Array.from({ length: 1 + (k % 7) }, () => pool[next()]).join('')
+    expect({ text, width: cellsWidth(cells(text)) }).toEqual({ text, width: width(text) })
+  }
 })

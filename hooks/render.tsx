@@ -35,6 +35,17 @@ export const width = (s: string): number =>
   : s.length === 1 ? (ZERO.test(s) ? 0 : WIDE.test(s) ? 2 : 1)
   : graphemes(s).reduce((w, g) => (ZERO.test(g) ? w : w + (WIDE.test(g) ? 2 : 1)), 0)
 
+const shown = (cell: string) => {
+  const code = cell.length === 1 ? cell.charCodeAt(0) : 0
+  return (code >= 0x20 && code <= 0x7e) || (code >= 0x2500 && code <= 0x25ff) || !ZERO.test(cell)
+}
+
+export const cellsWidth = (row: string[]): number => {
+  let w = 0
+  for (let i = 0; i < row.length; i++) if (shown(row[i] || row[i - 1]!)) w++
+  return w
+}
+
 const widestLine = (text: string): number => Math.max(...text.split('\n').map(width))
 
 const wrapRanges = (text: string, w: number): [number, number][] => {

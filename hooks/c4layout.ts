@@ -1,13 +1,17 @@
 import type { C4Element, C4Item, C4Model, C4Rel } from './c4'
 import { isFrame, wrap } from './c4'
-import { cells, width } from './render'
+import { cells, cellsWidth, width } from './render'
 
 export const ROLE = { blank: 0, frame: 1, frameLabel: 2, box: 3, name: 4, line: 5, arrow: 6, number: 7, title: 8, text: 9, muted: 10 } as const
 
 export const EXTERNAL = -2
 
-export type C4Paint = { roles: number[][]; hues: number[][]; scopes: number[][] }
+export type C4Part = { lines: string[]; grid?: string[][]; width?: number }
+export type C4Paint = { roles: number[][]; hues: number[][]; scopes: number[][]; parts: C4Part[] }
 export type C4Art = { text: string; paint: C4Paint }
+type Section = C4Part & Omit<C4Paint, 'parts'>
+export type C4Picture = { section: Section; span: number; routed: boolean[]; size: number }
+export type C4Pictures = (key: string, make: () => C4Picture | null) => C4Picture | null
 
 type Rect = { x: number; y: number; w: number; h: number }
 type Placed = Rect & { item: C4Item; children: Placed[]; label: string }
@@ -534,6 +538,14 @@ const legendEntry = (model: C4Model, rel: C4Rel, i: number, room: number, scope:
 
 const asciiRows = (rows: Rows): Rows => ({ ...rows, chars: rows.chars.map(r => r.map(ch => ASCII[ch] ?? (/[┌┐└┘├┤┬┴┼╭╮╰╯╟╢]/.test(ch) ? '+' : ch))) })
 
+const sectionOf = (rows: Rows, ascii: boolean): Section => ({ lines: (ascii ? asciiRows(rows) : rows).chars.map(r => r.join('').trimEnd()), roles: rows.roles, hues: rows.hues, scopes: rows.scopes })
+
+const gridOf = (part: C4Part) => (part.grid ??= part.lines.map(cells))
+
+export const c4Grid = (paint: C4Paint): string[][] => paint.parts.flatMap(gridOf)
+
+export const c4Width = (paint: C4Paint): number => Math.max(0, ...paint.parts.map(part => (part.width ??= Math.max(0, ...gridOf(part).map(cellsWidth)))))
+
 type Blank = () => { c: Canvas; boxes: Map<number, Placed> }
 
 const inked = (blank: Blank, c: Canvas, wires: Wire[], routes: (Route | null)[]): { art: Rows; routes: (Route | null)[] } => {
@@ -570,25 +582,35 @@ const picture = (layout: Layout, wires: Wire[]) => {
 
 const widest = (rows: Rows) => Math.max(0, ...rows.chars.map(r => r.length))
 
-const assemble = (model: C4Model, columns: number, layout: Layout, wires: Wire[], ascii: boolean): Rows | null => {
+const pictureOf = (layout: Layout, wires: Wire[], ascii: boolean): C4Picture | null => {
   const drawn = picture(layout, wires)
   if (!drawn) return null
-  const { art, routes } = drawn
-  const scopeOf = new Map(wires.flatMap((wire, w) => (routes[w] ? wire.rels.map(r => [r, w] as const) : [])))
-  const legendRoom = Math.min(columns - 2, Math.max(widest(art), 60))
+  const section = sectionOf(drawn.art, ascii)
+  return { section, span: widest(drawn.art), routed: drawn.routes.map(Boolean), size: section.roles.reduce((n, row) => n + row.length, 0) }
+}
+
+const placementOf = (placed: Placed[]): unknown[] => placed.map(p => [p.x, p.y, p.w, p.h, p.label, placementOf(p.children)])
+
+const assemble = (model: C4Model, columns: number, drawn: C4Picture, wires: Wire[], ascii: boolean): C4Art => {
+  const scopeOf = new Map(wires.flatMap((wire, w) => (drawn.routed[w] ? wire.rels.map(r => [r, w] as const) : [])))
+  const legendRoom = Math.min(columns - 2, Math.max(drawn.span, 60))
   const legend = model.rels.map((rel, i) => legendEntry(model, rel, i, legendRoom, scopeOf.get(i) ?? -1, ascii))
   const title = wrap(model.title ?? '', Math.max(1, columns - 2), Infinity).map(line => textRow(line, ROLE.title))
-  const parts = [...title, art, ...(legend.length ? [emptyRow(), ...legend] : [])]
-  return ascii ? asciiRows(joinRows(...parts)) : joinRows(...parts)
+  const sections = [sectionOf(joinRows(...title), ascii), drawn.section, sectionOf(joinRows(...(legend.length ? [emptyRow(), ...legend] : [])), ascii)]
+  const paint = { roles: sections.flatMap(s => s.roles), hues: sections.flatMap(s => s.hues), scopes: sections.flatMap(s => s.scopes), parts: sections }
+  return { text: sections.flatMap(s => s.lines).join('\n'), paint }
 }
 
 const labelOf = (wire: Wire) => wire.rels.map(r => r + 1).join(',')
 
-export const c4Layout = (model: C4Model, columns: number, ascii: boolean): C4Art | null => {
+const unshared: C4Pictures = (_, make) => make()
+
+export const c4Layout = (model: C4Model, columns: number, ascii: boolean, pictures = unshared): C4Art | null => {
   const wires = wiresOf(model.rels)
   const gap = Math.max(GAP_X, ...wires.map(wire => labelOf(wire).length + 4))
   const wide = laid(model, Math.max(20, columns - 2), gap)
   const layout = wide.w + 2 * MARGIN_X <= columns - 2 ? wide : laid(model, Math.max(20, columns - 2 - 2 * MARGIN_X), gap)
-  const rows = assemble(model, columns, layout, layout.w <= columns - 2 ? wires : [], ascii)
-  return rows && { text: rows.chars.map(r => r.join('').trimEnd()).join('\n'), paint: { roles: rows.roles, hues: rows.hues, scopes: rows.scopes } }
+  const routed = layout.w <= columns - 2
+  const drawn = pictures(JSON.stringify([ascii, routed, layout.w, layout.h, placementOf(layout.placed)]), () => pictureOf(layout, routed ? wires : [], ascii))
+  return drawn && assemble(model, columns, drawn, wires, ascii)
 }
