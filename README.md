@@ -87,6 +87,31 @@ rm "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/merman"
 
 For LaTeX math, install RaTeX's renderer and set `latex` to `true`; see [LaTeX math](#latex-math). Until then formulas draw as text.
 
+### With Nix and Home Manager
+
+The flake's Home Manager module links the plugin into Claude Code's skills folder, so it loads as `merman@skills-dir`, and installs [mermaid-cli](https://github.com/mermaid-js/mermaid-cli) with a headless browser for [diagrams as images](#diagrams-as-images) and RaTeX's renderer, from its release binaries, for [LaTeX math](#latex-math). Uninstall the marketplace copy first so the two don't both load.
+
+```nix
+# flake.nix inputs
+merman = {
+  url = "github:iamrohithrnair/merman";
+  inputs.nixpkgs.follows = "nixpkgs";
+};
+
+# Home Manager modules
+imports = [ inputs.merman.homeModules.default ];
+programs.merman = {
+  enable = true;
+  settings = {
+    theme = "catppuccin-mocha";
+    clock = "24h";
+    clockTimeZone = "America/Los_Angeles";
+  };
+};
+```
+
+`settings` takes any option from the [Configure](#configure) table and bakes it in as that option's default, so a value saved later with `/config` or `/merman setup` still wins; the build fails on an unknown key, a wrong type or a value outside an option's choices. `mermaidImages.enable` (on by default) bakes in `mermaidImages` and an `mmdcPath` pointing at the store's `mmdc`, so nothing has to be on your `PATH`. nixpkgs builds Chromium only for Linux; on macOS set `programs.merman.mermaidImages.browser = pkgs.google-chrome` (unfree), or turn `mermaidImages.enable` off, or the build stops with an assertion saying so. `latex.enable` (on by default) does the same for `latex` and `ratexPath`. Under tmux, merman and Claude Code skip images unless `CLAUDE_CODE_FORCE_TERMINAL_IMAGES` is set, so with `programs.tmux.enable` on, `tmuxImages` (on by default then) adds `allow-passthrough on` and sets that variable in tmux's global environment; panes opened before the switch keep their old environment, so start Claude Code in a new pane. `configDir` (default `.claude`) is where the skills folder lives. Without Home Manager, `nix build github:iamrohithrnair/merman` builds the same folder with LaTeX and (on Linux) diagram images on and the rest at its defaults, to link into the skills folder yourself; `.#mmdc` and `.#ratex-render` build the two programs alone.
+
 ## Performance
 
 merman draws replies in place of Claude Code's own markdown renderer, so its cost is the time to turn a reply into a tree, plus a one-time note to the model.
