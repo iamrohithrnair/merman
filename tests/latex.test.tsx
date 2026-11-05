@@ -675,6 +675,37 @@ test('a theme switch while a formula typesets redraws it in the new color', { op
   await again.unmount()
 })
 
+test('a formula queued under one theme still draws after random switches away and back', { options: { theme: 'random' } }, async ($, on) => {
+  mock.env(on, KITTY)
+  on('config.set', (_, e) => ({ value: e.value }))
+  const clock = mock.clock(on)
+  let gate: Promise<void> = Promise.resolve()
+  ratex(on, ok, PNG_160x80, { then: (done: () => void) => gate.then(done) } as Promise<void>)
+  const shuffle = async () => (await $.command.run({ command: 'merman', args: 'random', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 120 } })).text
+  const warm = await $.ui.mount(reply(REPLY))
+  await clock.settle()
+  await warm.unmount()
+  const first = await shuffle()
+  let release = () => {}
+  gate = new Promise(r => (release = r))
+  const late = await $.ui.mount(reply('Late:\n\n$$\nx^3\n$$'))
+  await clock.settle()
+  const later = await $.ui.mount(reply('Later:\n\n$$\nx^4\n$$'))
+  await clock.settle()
+  await shuffle()
+  release()
+  await clock.settle()
+  await late.unmount()
+  await later.unmount()
+  let back = false
+  for (let i = 0; i < 400 && !back; i++) back = (await shuffle()) === first
+  expect(back).toBe(true)
+  const again = await $.ui.mount(reply('Later:\n\n$$\nx^4\n$$'))
+  await clock.settle()
+  expect((await again.find({ type: 'Image' }))?.props.alt).toBe('x^4')
+  await again.unmount()
+})
+
 for (const tex of ['\\toString x', '\\constructor x', '\\hasOwnProperty x', '\\left\\toString x \\right.']) test(`${tex} draws as text, not as JavaScript`, async () => {
   expect(texText(tex)).not.toMatch(/function|native code|\[object/)
 })
