@@ -424,6 +424,22 @@ test('clock times read as 24h or 12h, with the date when not today', () => {
   expect(clockText(local(9, 23, 5), now, '24h')).toBe('Oct 9 23:05')
 })
 
+test('a time zone moves the hour and the date, across daylight saving', () => {
+  const pdt = Date.UTC(2026, 9, 10, 3, 15)
+  expect(clockText(pdt, pdt, '24h', 'America/Los_Angeles')).toBe('20:15')
+  expect(clockText(pdt, Date.UTC(2026, 9, 10, 12), '12h', 'America/Los_Angeles')).toBe('Oct 9 8:15 PM')
+  const pst = Date.UTC(2026, 11, 1, 12)
+  expect(clockText(pst, pst, '24h', 'America/Los_Angeles')).toBe('04:00')
+  expect(clockText(pst, pst, '24h', 'US/Pacific')).toBe('04:00')
+  expect(clockText(Date.UTC(2026, 11, 1, 0, 5), Date.UTC(2026, 11, 1, 0, 5), '24h', 'UTC')).toBe('00:05')
+})
+
+test('a time zone that does not exist falls back to the computer\'s', () => {
+  expect(resolveStyle({ clockTimeZone: 'US/Los_Angeles' }).timeZone).toBe('')
+  expect(resolveStyle({ clockTimeZone: ' America/Los_Angeles ' }).timeZone).toBe('America/Los_Angeles')
+  expect(resolveStyle({ clockTimeZone: 42 }).timeZone).toBe('')
+})
+
 test('a row takes the newest matching time recorded before it was first drawn', () => {
   const list = [{ text: 'again', at: 1 }, { text: 'hi there', at: 2 }, { text: 'again', at: 3 }]
   expect(sentAt(list, 'again', 2)).toBe(1)
@@ -950,6 +966,15 @@ test('clock puts the send time before your prompt', { options: { clock: '24h' } 
   const unsent = await $.ui.mount(prompt('typed before this session'))
   expect(await unsent.find({ type: 'Text', text: /^\d\d:\d\d $/ })).toBeUndefined()
   await unsent.unmount()
+})
+
+test('clockTimeZone shows the send time in that zone', { options: { clock: '24h', clockTimeZone: 'America/Los_Angeles' } }, async ($, on) => {
+  mock.clock(on, { now: Date.UTC(2026, 10, 5, 21, 30) })
+  on('prompt.submit', (_, e) => ({ text: e.text, context: e.context }))
+  await $.prompt.submit({ text: 'what time is it there?', wait: false, origin: { kind: 'composer' } })
+  const ui = await $.ui.mount({ ...prompt('what time is it there?', 'composer', 'terminal'), requestId: 'row-tz' })
+  expect(await ui.find({ type: 'Text', text: /^13:30 $/ })).toBeDefined()
+  await ui.unmount()
 })
 
 test('an old prompt row that redraws after a resume never takes a later send time', { options: { clock: '24h' } }, async ($, on) => {

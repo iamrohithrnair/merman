@@ -307,7 +307,7 @@ What you type, at the prompt or through Remote Control, draws in the theme's col
 |---|---|---|---|
 | a prompt in a rounded box | a prompt in a rounded box across the full width | a prompt with an accent bar | a prompt with a bold chevron |
 
-`clock` adds the time each prompt was sent. The line that closes a turn is Claude Code's own, with its end time (`✻ Baked for 1m 55s · done 14:32`). It reads `24h` or `12h`, and a time from another day gets its date. With `promptStyle: off` the time goes in front of Claude Code's own prompt row. Off by default.
+`clock` adds the time each prompt was sent. The line that closes a turn is Claude Code's own, with its end time (`✻ Baked for 1m 55s · done 14:32`). It reads `24h` or `12h`, and a time from another day gets its date. `clockTimeZone` shows the times in another zone than the computer's, as an IANA name like `America/Los_Angeles`; Claude Code's own turn line keeps the computer's zone. With `promptStyle: off` the time goes in front of Claude Code's own prompt row. Off by default.
 
 | `clock` | on a prompt |
 |---|---|
@@ -348,6 +348,7 @@ Options sit under `options`, keyed by the plugin's id: `merman@merman`, or `merm
 | `taskStyle` | `checks` (`[ ]` `[✓]`, done struck through), `ticks` (`○` `✓`), `box` (`□` `✓`), `progress` (ticks with a done-count bar) | `checks` |
 | `promptStyle` | `bubble`, `wide`, `bar`, `chevron`, `off` | `bubble` |
 | `clock` | `off`, `24h`, `12h` | `off` |
+| `clockTimeZone` | an IANA time zone (`America/Los_Angeles`), empty for the computer's | empty |
 | `headingStyle` | `banner`, `bold`, `underline`, `uppercase` | `banner` |
 | `highlightNumbers` | `true`, `false` | `true` |
 | `highlightPaths` | `true`, `false` | `true` |

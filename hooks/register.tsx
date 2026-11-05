@@ -920,7 +920,7 @@ export const register: Register = (on, options) => {
     const own = kind === 'composer' || kind === 'bridge' || (kind === 'unclassified' && !e.props.from && !e.props.task)
     if (!own) return next(e)
     const at = style.clock === 'off' ? undefined : sentAt(await read($, sent), e.props.text, await firstDrawn($, e.requestId))
-    const time = at === undefined ? undefined : clockText(at, await $.clock.now(), style.clock)
+    const time = at === undefined ? undefined : clockText(at, await $.clock.now(), style.clock, style.timeZone)
     if (style.promptStyle === 'off') return time === undefined ? next(e) : next({ ...e, props: { ...e.props, text: `[${time}] ${e.props.text}` } })
     const el = $.ui.resolve(e)
     const reach = await linkReach($, probes, style)

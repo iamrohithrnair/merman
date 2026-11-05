@@ -358,6 +358,7 @@ test('the help screen shows every element merman draws', async () => {
   expect(showcaseText(Object.keys(PRESETS))).toContain('`wide`')
   expect(showcaseText(Object.keys(PRESETS))).toContain('A paste of 4 lines or more')
   expect(showcaseText(Object.keys(PRESETS))).toContain('`clock`')
+  expect(showcaseText(Object.keys(PRESETS))).toContain('`clockTimeZone`')
   expect(showcaseText([])).toContain('⧉ html')
   expect(showcaseText([])).toContain('`▣ png`')
   expect(showcaseText([])).toContain('src/app.ts:42, and Windows paths like C:\\work\\plan.md')
