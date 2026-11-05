@@ -1,6 +1,7 @@
 import { expect, mock, test } from 'claude-code/testing'
 
 import { LINUX_TABLE_COPY, MAC_IMAGE_COPY, MAC_TABLE_COPY, WIN_IMAGE_COPY, WIN_TABLE_COPY, imageCommand } from '../hooks/clipboard'
+import { PRESET_BACKGROUNDS } from '../hooks/presets'
 import { clipboardEnv, recordCopies, recordToasts, runResult, startSession } from './clipboard-env'
 
 const source = '| Name | Value |\n|--|--:|\n| **שלום** | `$(ignored)` |'
@@ -288,6 +289,26 @@ for (const surface of ['terminal', 'desktop'] as const) for (const [backend, set
   await ui.press({ key: 'png1' })
   expect(JSON.parse(calls[1]!.input).lines.flat().map((run: { text: string }) => run.text).join('')).toContain('Gateway')
   expect(toasts).toEqual(['Copied', 'Copied as image', 'Copied as image'])
+  await ui.unmount()
+})
+
+test('after /merman theme random, ▣ png paints on the new theme\'s background', { options: { theme: 'random' } }, async ($, on) => {
+  clipboardEnv(on, 'macos')
+  on('config.set', (_, e) => ({ value: e.value }))
+  const calls: string[] = []
+  on('process.run', (_, e) => {
+    calls.push(e.init?.stdin ?? '')
+    return runResult(0)
+  })
+  recordCopies(on)
+  recordToasts(on)
+  await startSession($, on)
+  const run = await $.command.run({ command: 'merman', args: 'theme random', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 120 } })
+  const picked = /^Theme set to random: (\S+) for now/.exec(run.text ?? '')?.[1] as keyof typeof PRESET_BACKGROUNDS
+  const ui = await $.ui.mount({ ...mount, props: { text: figures, isFirstOfReply: true } })
+  await ui.press({ key: 'png0' })
+  const hex = PRESET_BACKGROUNDS[picked] ?? '#ffffff'
+  expect(JSON.parse(calls[0]!).background).toEqual([1, 3, 5].map(at => parseInt(hex.slice(at, at + 2), 16)))
   await ui.unmount()
 })
 
