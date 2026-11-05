@@ -130,7 +130,7 @@ const showsImages = async ($: EngineInterface): Promise<boolean> => {
 }
 
 type Latex = { command: string; dir: string }
-type LatexSession = { style: Style; color: string; pending: Set<string>; wanted: Set<string>; batch: string[]; engine?: Promise<Latex | null>; ready?: Latex | null; stopped?: boolean; queue: Promise<void> }
+type LatexSession = { style: Style; color: string; pending: Set<string>; wanted: Set<string>; batch: (readonly [string, string])[]; engine?: Promise<Latex | null>; ready?: Latex | null; stopped?: boolean; queue: Promise<void> }
 
 const formulaKey = (color: string, tex: string) => `${color}\0${tex}`
 
@@ -185,7 +185,8 @@ const stopLatex = (latex: LatexSession) => {
   latex.batch = []
 }
 
-const typesetLater = async ($: EngineInterface, latex: LatexSession, texs: string[]): Promise<void> => {
+const typesetLater = async ($: EngineInterface, latex: LatexSession, batch: (readonly [string, string])[]): Promise<void> => {
+  const texs = batch.map(([, tex]) => tex)
   const color = latex.color
   const engine = await latexEngine($, latex)
   if (!engine || latex.stopped) return
@@ -197,7 +198,10 @@ const typesetLater = async ($: EngineInterface, latex: LatexSession, texs: strin
   const fresh = texs.map((tex, i) => [formulaKey(color, tex), results[i]!] as const)
   await update($, formulas, store => keepFormulas(store as Record<string, Formula>, fresh, latex.wanted, formulaBytes))
   latex.wanted.clear()
-  for (const tex of texs) latex.pending.delete(formulaKey(color, tex))
+  for (const [queued, tex] of batch) {
+    latex.pending.delete(queued)
+    latex.pending.delete(formulaKey(color, tex))
+  }
 }
 
 const mathOfBlocks = async ($: EngineInterface, latex: LatexSession, surface: string, blocks: Block[]): Promise<Map<number, Typeset>> => {
@@ -214,14 +218,14 @@ const mathOfBlocks = async ($: EngineInterface, latex: LatexSession, surface: st
   if (missing.length) {
     if (latex.batch.length === 0) {
       $.clock.after(0, () => {
-        const texs = latex.batch
+        const batch = latex.batch
         latex.batch = []
-        latex.queue = latex.queue.then(() => typesetLater($, latex, texs)).catch(() => stopLatex(latex))
+        latex.queue = latex.queue.then(() => typesetLater($, latex, batch)).catch(() => stopLatex(latex))
       })
     }
     for (const [key, tex] of missing) {
       latex.pending.add(key)
-      latex.batch.push(tex)
+      latex.batch.push([key, tex])
     }
   }
   return new Map(maths.flatMap(({ i, tex, key }) => {
