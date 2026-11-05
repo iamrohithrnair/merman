@@ -317,6 +317,20 @@ for (const [name, env] of [['a background session', { TMPDIR: '/tmp/', CLAUDE_CO
   })
 }
 
+test('ratexPath runs that renderer instead of the one on PATH', { options: { ratexPath: ' /opt/ratex/bin/ratex-render ' } }, async ($, on) => {
+  mock.env(on, KITTY)
+  const clock = mock.clock(on)
+  const runs = ratex(on)
+
+  const ui = await $.ui.mount(reply(REPLY))
+  await clock.settle()
+
+  expect(runs.length).toBeGreaterThan(0)
+  expect(runs.every(r => r.argv[0] === '/opt/ratex/bin/ratex-render')).toBe(true)
+  expect((await ui.find({ type: 'Image' }))?.props.alt).toBe('\\int_0^1 x^2\\,dx')
+  await ui.unmount()
+})
+
 test('the renderer runs as ratex-render in one folder named for the session plus a random suffix', async ($, on) => {
   mock.env(on, KITTY)
   const clock = mock.clock(on)

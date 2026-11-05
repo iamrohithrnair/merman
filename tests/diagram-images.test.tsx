@@ -223,6 +223,19 @@ test('a diagram wider than the terminal shrinks to fit', async () => {
   expect(fitDiagram({ width: 4000, height: 1000 }, 60)).toEqual({ columns: 58, rows: 7 })
 })
 
+test('mmdcPath runs that mmdc instead of the one on PATH', { options: { mmdcPath: ' /opt/mermaid/bin/mmdc ' } }, async ($, on) => {
+  mock.env(on, KITTY)
+  const clock = mock.clock(on)
+  const { runs } = mmdc(on)
+
+  const ui = await $.ui.mount(reply(REPLY))
+  await clock.settle()
+
+  expect(runs.length).toBeGreaterThan(0)
+  expect(runs.every(r => r.argv[0] === '/opt/mermaid/bin/mmdc')).toBe(true)
+  await ui.unmount()
+})
+
 test('the browser mmdc starts has no network', async ($, on) => {
   mock.env(on, KITTY)
   const clock = mock.clock(on)

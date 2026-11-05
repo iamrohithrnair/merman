@@ -332,11 +332,23 @@
       "description": "Draw ```mermaid diagrams as images in the theme's colors in kitty and Ghostty (not under tmux) with mermaid-cli, installed as mmdc on your PATH. Off runs nothing. A diagram shows as text until its image is ready, and stays text if mmdc can't draw it.",
       "default": false
     },
+    "mmdcPath": {
+      "type": "string",
+      "title": "mermaid-cli program",
+      "description": "The mmdc that draws mermaid images: a path, or a name looked up on your PATH. Empty runs mmdc from your PATH.",
+      "default": ""
+    },
     "latex": {
       "type": "boolean",
       "title": "LaTeX math",
       "description": "Draw $$ and ```math formulas as typeset images in kitty and Ghostty (not under tmux) with RaTeX's renderer, installed as ratex-render on your PATH. Off runs nothing. Formulas that can't be drawn stay as text.",
       "default": false
+    },
+    "ratexPath": {
+      "type": "string",
+      "title": "RaTeX program",
+      "description": "The ratex-render that typesets LaTeX: a path, or a name looked up on your PATH. Empty runs ratex-render from your PATH.",
+      "default": ""
     }
   }
 }

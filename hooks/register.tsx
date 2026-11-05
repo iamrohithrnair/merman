@@ -167,7 +167,7 @@ const startLatex = async ($: EngineInterface, latex: LatexSession): Promise<Late
   if (!latex.style.latex || !(await $.session.surfaces()).includes('terminal') || !(await showsImages($))) return null
   const tmp = (await $.env.get('TMPDIR')) ?? (await $.env.get('TEMP')) ?? '/tmp'
   const suffix = await update($, latexDir, current => current || crypto.randomUUID())
-  const engine = { command: 'ratex-render', dir: `${tmp.replace(/[\\/]+$/, '')}/merman-latex-${await $.session.id()}-${suffix}` }
+  const engine = { command: latex.style.ratex, dir: `${tmp.replace(/[\\/]+$/, '')}/merman-latex-${await $.session.id()}-${suffix}` }
   const [check] = await typeset($, latex.color, engine, ['x^2'])
   return check && 'png' in check ? engine : null
 }
@@ -238,12 +238,12 @@ type ChartJob = { key: string; source: string; width: number }
 
 const chartKey = (config: string, width: number, source: string) => `${config}\0${width}\0${source}`
 
-const mmdc = async ($: EngineInterface, dir: string, config: string, width: number, source: string): Promise<DiagramImage> => {
+const mmdc = async ($: EngineInterface, command: string, dir: string, config: string, width: number, source: string): Promise<DiagramImage> => {
   const out = `${dir}/chart.png`
   await $.fs.write(`${dir}/config.json`, sizedConfig(config, width))
   await $.fs.write(`${dir}/browser.json`, browserConfig(width))
   await $.fs.write(out, '')
-  const { exitCode } = await $.process.run(['mmdc', '-i', '-', '-o', out, '-c', `${dir}/config.json`, '-p', `${dir}/browser.json`, '-b', 'transparent', '-s', String(DIAGRAM_SCALE), '-q'], { stdin: `${source}\n`, timeoutMs: 30000 })
+  const { exitCode } = await $.process.run([command, '-i', '-', '-o', out, '-c', `${dir}/config.json`, '-p', `${dir}/browser.json`, '-b', 'transparent', '-s', String(DIAGRAM_SCALE), '-q'], { stdin: `${source}\n`, timeoutMs: 30000 })
   if (exitCode !== 0) return { error: true }
   const png = await $.fs.read(out, { as: 'bytes' }).then(r => r.base64, () => '')
   const size = png ? pngSize(png) : null
@@ -255,7 +255,7 @@ const startCharts = async ($: EngineInterface, charts: Charts): Promise<string |
   const tmp = (await $.env.get('TMPDIR')) ?? (await $.env.get('TEMP')) ?? '/tmp'
   const suffix = await update($, latexDir, current => current || crypto.randomUUID())
   const dir = `${tmp.replace(/[\\/]+$/, '')}/merman-mermaid-${await $.session.id()}-${suffix}`
-  const check = await mmdc($, dir, charts.config, layoutWidth(100), DIAGRAM_PROBE)
+  const check = await mmdc($, charts.style.mmdc, dir, charts.config, layoutWidth(100), DIAGRAM_PROBE)
   return 'png' in check ? dir : null
 }
 
@@ -280,7 +280,7 @@ const chartLater = async ($: EngineInterface, charts: Charts, batch: ChartJob[])
     if (!dir || charts.stopped) return
     const config = charts.config
     const key = chartKey(config, job.width, job.source)
-    const image = await mmdc($, dir, config, job.width, job.source).catch((): DiagramImage => ({ error: true }))
+    const image = await mmdc($, charts.style.mmdc, dir, config, job.width, job.source).catch((): DiagramImage => ({ error: true }))
     await update($, diagramImages, store => keepFormulas(store as Record<string, DiagramImage>, [[key, image]], charts.wanted, diagramBytes))
     charts.pending.delete(job.key)
     charts.pending.delete(key)
