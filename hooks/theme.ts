@@ -1,6 +1,7 @@
 import type { PluginOptions } from 'claude-code'
 
 import type { ClipboardBackend } from './clipboard'
+import { isTimeZone } from './clock'
 import type { Block } from './markdown'
 import type { PresetName } from './presets'
 import { PRESET_BACKGROUNDS, PRESET_NAMES, PRESETS } from './presets'
@@ -24,6 +25,7 @@ export type Style = {
   taskStyle: 'checks' | 'ticks' | 'box' | 'progress'
   promptStyle: 'bubble' | 'wide' | 'bar' | 'chevron' | 'off'
   clock: Clock
+  timeZone: string
   toolStyle: 'chat' | 'tree-dim' | 'tree-bold' | 'classic'
   toolOutput: 'full' | 'quiet'
   narration?: boolean
@@ -87,6 +89,7 @@ export const resolveStyle = (options: PluginOptions): Style => {
     taskStyle: pick(options.taskStyle, ['checks', 'ticks', 'box', 'progress'] as const, 'checks'),
     promptStyle: pick(options.promptStyle, ['bubble', 'wide', 'bar', 'chevron', 'off'] as const, 'bubble'),
     clock: pick(options.clock, ['off', '24h', '12h'] as const, 'off'),
+    timeZone: typeof options.clockTimeZone === 'string' && isTimeZone(options.clockTimeZone.trim()) ? options.clockTimeZone.trim() : '',
     toolStyle: pick(options.toolStyle, ['chat', 'tree-dim', 'tree-bold', 'classic'] as const, 'chat'),
     toolOutput: pick(options.toolOutput, ['full', 'quiet'] as const, 'full'),
     diffStyle: pick(options.diffStyle, ['card', 'full', 'marks', 'bar'] as const, 'card'),

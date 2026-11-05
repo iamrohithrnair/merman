@@ -89,6 +89,12 @@
       "default": "off",
       "options": ["off", "24h", "12h"]
     },
+    "clockTimeZone": {
+      "type": "string",
+      "title": "Clock time zone",
+      "description": "The time zone clock times are shown in, as an IANA name like America/Los_Angeles or Europe/Berlin. Empty uses the computer's own. A name that isn't a time zone is ignored.",
+      "default": ""
+    },
     "toolStyle": {
       "type": "string",
       "title": "Tool row style",
