@@ -78,7 +78,7 @@ const SIDEWAYS = /^(\s*(?:flowchart|graph)[ \t]+)(LR|RL)\b/
 
 const SUPPORTED = /^(flowchart|graph|statediagram(-v2)?|xychart(-beta)?|sequencediagram|classdiagram|erdiagram|pie|gantt)$/i
 
-const kindOf = (source: string) => /^\s*(\S*)/.exec(source.replace(/^(\s*%%[^\n]*\n)+/, ''))![1]!
+export const kindOf = (source: string) => /^\s*(\S*)/.exec(source.replace(/^(\s*%%[^\n]*\n)+/, ''))![1]!
 
 const unsupportedKind = (source: string): string | undefined => {
   const kind = kindOf(source)

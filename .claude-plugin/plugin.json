@@ -326,6 +326,12 @@
       "description": "Attach a short note, read by the model and never shown, to the first prompt you type or another plugin sends in each conversation, and again after a compaction drops it, saying tables, code, mermaid diagrams, charts and figures render here, and LaTeX formulas once the renderer runs. About 355 tokens once per conversation (about 135 for the main part, about 220 for figures), about 55 more with LaTeX. Off when mermaid is off.",
       "default": true
     },
+    "mermaidImages": {
+      "type": "boolean",
+      "title": "Mermaid as images",
+      "description": "Draw ```mermaid diagrams as images in the theme's colors in kitty and Ghostty (not under tmux) with mermaid-cli, installed as mmdc on your PATH. Off runs nothing. A diagram shows as text until its image is ready, and stays text if mmdc can't draw it.",
+      "default": false
+    },
     "latex": {
       "type": "boolean",
       "title": "LaTeX math",
