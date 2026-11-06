@@ -15,6 +15,7 @@ declare module 'claude-code' {
   interface PluginState {
     merman: {
       formulas: Record<string, unknown>
+      diagrams: Record<string, unknown>
       dir: string
       unfolded: string[]
       sent: { text: string; at: number }[]

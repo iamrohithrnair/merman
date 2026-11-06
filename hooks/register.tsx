@@ -2,6 +2,8 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, PluginOptions, PromptOrigin, Register, RenderElement, RenderInput, RenderSurface, RenderViewport, ToolGroupCall } from 'claude-code'
 
 import { clockText, promptKey, sentAt, withRecord } from './clock'
+import type { DiagramImage } from './diagramimage'
+import { DIAGRAM_PROBE, DIAGRAM_SCALE, browserConfig, diagramBytes, diagramConfig, diagramSourceOf, fitDiagram, layoutWidth, sizedConfig } from './diagramimage'
 import type { Formula } from './latex'
 import { LATEX_DPR, LATEX_FONT_PX, MAX_IMAGE_BYTES, MAX_PICTURE_BYTES, fitImage, fitsImage, formulaBytes, imageFile, imageOf, keepFormulas, mathOf, padFor, pickFormula, pngSize, ratexColor, renderedOf } from './latex'
 import type { Block } from './markdown'
@@ -86,6 +88,7 @@ const columnsOf = (viewport?: { columns?: number }) => Math.max(20, (viewport?.c
 
 const formulas = atom({ plugin: 'merman', key: 'formulas' } as const, {})
 const latexDir = atom({ plugin: 'merman', key: 'dir' } as const, '')
+const diagramImages = atom({ plugin: 'merman', key: 'diagrams' } as const, {})
 const unfolded = atom({ plugin: 'merman', key: 'unfolded' } as const, [] as string[])
 const sent = atom({ plugin: 'merman', key: 'sent' } as const, [])
 const setupAt = atom({ plugin: 'merman', key: 'setupAt' } as const, 0)
@@ -163,9 +166,8 @@ const withPadding = async ($: EngineInterface, color: string, engine: Latex, tex
 const startLatex = async ($: EngineInterface, latex: LatexSession): Promise<Latex | null> => {
   if (!latex.style.latex || !(await $.session.surfaces()).includes('terminal') || !(await showsImages($))) return null
   const tmp = (await $.env.get('TMPDIR')) ?? (await $.env.get('TEMP')) ?? '/tmp'
-  const suffix = (await read($, latexDir)) || crypto.randomUUID()
-  await update($, latexDir, () => suffix)
-  const engine = { command: 'ratex-render', dir: `${tmp.replace(/[\\/]+$/, '')}/merman-latex-${await $.session.id()}-${suffix}` }
+  const suffix = await update($, latexDir, current => current || crypto.randomUUID())
+  const engine = { command: latex.style.ratex, dir: `${tmp.replace(/[\\/]+$/, '')}/merman-latex-${await $.session.id()}-${suffix}` }
   const [check] = await typeset($, latex.color, engine, ['x^2'])
   return check && 'png' in check ? engine : null
 }
@@ -227,6 +229,93 @@ const mathOfBlocks = async ($: EngineInterface, latex: LatexSession, surface: st
   return new Map(maths.flatMap(({ i, tex, key }) => {
     const formula = store[key]
     return formula && 'png' in formula ? [[i, { tex, ...formula }] as const] : []
+  }))
+}
+
+type Charted = Extract<DiagramImage, { png: string }> & { source: string }
+type Charts = { style: Style; config: string; pending: Set<string>; wanted: Set<string>; batch: ChartJob[]; engine?: Promise<string | null>; ready?: string | null; stopped?: boolean; queue: Promise<void> }
+type ChartJob = { key: string; source: string; width: number }
+
+const chartKey = (config: string, width: number, source: string) => `${config}\0${width}\0${source}`
+
+const mmdc = async ($: EngineInterface, command: string, dir: string, config: string, width: number, source: string): Promise<DiagramImage> => {
+  const out = `${dir}/chart.png`
+  await $.fs.write(`${dir}/config.json`, sizedConfig(config, width))
+  await $.fs.write(`${dir}/browser.json`, browserConfig(width))
+  await $.fs.write(out, '')
+  const { exitCode } = await $.process.run([command, '-i', '-', '-o', out, '-c', `${dir}/config.json`, '-p', `${dir}/browser.json`, '-b', 'transparent', '-s', String(DIAGRAM_SCALE), '-q'], { stdin: `${source}\n`, timeoutMs: 30000 })
+  if (exitCode !== 0) return { error: true }
+  const png = await $.fs.read(out, { as: 'bytes' }).then(r => r.base64, () => '')
+  const size = png ? pngSize(png) : null
+  return size && size.width > 0 && size.height > 0 && fitsImage(png) ? { png, ...size } : { error: true }
+}
+
+const startCharts = async ($: EngineInterface, charts: Charts): Promise<string | null> => {
+  if (!charts.style.mermaidImages || !charts.style.mermaid || !(await $.session.surfaces()).includes('terminal') || !(await showsImages($))) return null
+  const tmp = (await $.env.get('TMPDIR')) ?? (await $.env.get('TEMP')) ?? '/tmp'
+  const suffix = await update($, latexDir, current => current || crypto.randomUUID())
+  const dir = `${tmp.replace(/[\\/]+$/, '')}/merman-mermaid-${await $.session.id()}-${suffix}`
+  const check = await mmdc($, charts.style.mmdc, dir, charts.config, layoutWidth(100), DIAGRAM_PROBE)
+  return 'png' in check ? dir : null
+}
+
+const chartEngine = ($: EngineInterface, charts: Charts): Promise<string | null> =>
+  (charts.engine ??= startCharts($, charts)
+    .catch(() => null)
+    .then(dir => {
+      charts.ready = dir
+      if (dir) $.ui.invalidate('ui.render')
+      return dir
+    }))
+
+const stopCharts = (charts: Charts) => {
+  charts.stopped = true
+  charts.pending.clear()
+  charts.batch = []
+}
+
+const chartLater = async ($: EngineInterface, charts: Charts, batch: ChartJob[]): Promise<void> => {
+  const dir = await chartEngine($, charts)
+  for (const job of batch) {
+    if (!dir || charts.stopped) return
+    const config = charts.config
+    const key = chartKey(config, job.width, job.source)
+    const image = await mmdc($, charts.style.mmdc, dir, config, job.width, job.source).catch((): DiagramImage => ({ error: true }))
+    await update($, diagramImages, store => keepFormulas(store as Record<string, DiagramImage>, [[key, image]], charts.wanted, diagramBytes))
+    charts.pending.delete(job.key)
+    charts.pending.delete(key)
+  }
+  charts.wanted.clear()
+}
+
+const chartsOfBlocks = async ($: EngineInterface, charts: Charts, surface: string, blocks: Block[], columns: number): Promise<Map<number, Charted>> => {
+  const width = layoutWidth(columns)
+  const found = [...blocks.entries()].flatMap(([i, block]) => {
+    const source = diagramSourceOf(block)
+    return source === null ? [] : [{ i, source, key: chartKey(charts.config, width, source) }]
+  })
+  if (surface !== 'terminal' || found.length === 0 || !charts.style.mermaidImages) return new Map()
+  void chartEngine($, charts)
+  if (!charts.ready) return new Map()
+  for (const { key } of found) rememberCall(charts.wanted, key, MAX_WANTED)
+  const store = (await read($, diagramImages)) as Record<string, DiagramImage>
+  const missing = charts.stopped ? [] : [...new Map(found.map(({ key, source }) => [key, source]))].filter(([key]) => !store[key] && !charts.pending.has(key))
+  if (missing.length) {
+    if (charts.batch.length === 0) {
+      $.clock.after(0, () => {
+        const batch = charts.batch
+        charts.batch = []
+        charts.queue = charts.queue.then(() => chartLater($, charts, batch)).catch(() => stopCharts(charts))
+      })
+    }
+    for (const [key, source] of missing) {
+      charts.pending.add(key)
+      charts.batch.push({ key, source, width })
+    }
+  }
+  return new Map(found.flatMap(({ i, source, key }) => {
+    const image = store[key]
+    return image && 'png' in image ? [[i, { source, ...image }] as const] : []
   }))
 }
 
@@ -460,7 +549,29 @@ const copyOut = async ($: EngineInterface, style: Style, content: string, surfac
   return failure ? `Copied as plain text (${failure})` : 'Copied'
 }
 
-const drawMarkdown = ($: EngineInterface, el: ReturnType<EngineInterface['ui']['resolve']>, style: Style, blocks: ReturnType<typeof parse>, columns: number, math: Map<number, Typeset> = new Map(), pictures: Map<number, Picture> = new Map(), reply?: string, open?: string[], notes?: { id: string; press: boolean }, folds?: Map<string, boolean>): RenderElement[] => {
+type ImageEl = Extract<ReturnType<EngineInterface['ui']['resolve']>, { Image: unknown }>['Image']
+
+const placeCharts = (Image: ImageEl, drawn: Drawn, columns: number, charted: Map<number, Charted>) => {
+  for (const [i, chart] of charted) {
+    const fit = fitDiagram(chart, columns)
+    const art = drawn.get(i)?.art
+    if (fit) drawn.set(i, { element: <Image key={`b${i}`} source={{ png: chart.png }} columns={fit.columns} rows={fit.rows} alt={chart.source} />, ...(art === undefined ? {} : { art }) })
+  }
+}
+
+const placeImages = (Image: ImageEl, drawn: Drawn, columns: number, marker: number, math: Map<number, Typeset>, pictures: Map<number, Picture>, charted: Map<number, Charted>) => {
+  for (const [i, formula] of math) {
+    const picked = pickFormula(formula, columns)
+    if (picked) drawn.set(i, { element: <Image key={`b${i}`} source={{ png: picked.picture.png }} columns={picked.fit.columns} rows={picked.fit.rows} alt={formula.tex} /> })
+  }
+  placeCharts(Image, drawn, columns - marker, charted)
+  for (const [i, picture] of pictures) {
+    const fit = fitImage(picture, columns)
+    drawn.set(i, { element: <Image key={`b${i}`} source={{ png: picture.png }} columns={fit.columns} rows={fit.rows} alt={picture.alt} /> })
+  }
+}
+
+const drawMarkdown = ($: EngineInterface, el: ReturnType<EngineInterface['ui']['resolve']>, style: Style, blocks: ReturnType<typeof parse>, columns: number, math: Map<number, Typeset> = new Map(), pictures: Map<number, Picture> = new Map(), reply?: string, open?: string[], notes?: { id: string; press: boolean }, folds?: Map<string, boolean>, charted: Map<number, Charted> = new Map()): RenderElement[] => {
   const { Button } = el
   const copy = (text: string | (() => string), key: string, label = '⧉ copy', rich?: (() => string) | 'png') => {
     const copied = (surface: RenderSurface) => copyOut($, style, typeof text === 'function' ? text() : text, surface, rich)
@@ -474,17 +585,7 @@ const drawMarkdown = ($: EngineInterface, el: ReturnType<EngineInterface['ui']['
     ) : null
   }
   const drawn = withViewers(el, style, drawDiagrams(el, notes ? { ...style, noteKey: instanceKey(notes.id) } : style, blocks, columns - markerRoom(style)), columns - markerRoom(style))
-  const Image = 'Image' in el ? el.Image : null
-  if (Image) {
-    for (const [i, formula] of math) {
-      const picked = pickFormula(formula, columns)
-      if (picked) drawn.set(i, { element: <Image key={`b${i}`} source={{ png: picked.picture.png }} columns={picked.fit.columns} rows={picked.fit.rows} alt={formula.tex} /> })
-    }
-    for (const [i, picture] of pictures) {
-      const fit = fitImage(picture, columns)
-      drawn.set(i, { element: <Image key={`b${i}`} source={{ png: picture.png }} columns={fit.columns} rows={fit.rows} alt={picture.alt} /> })
-    }
-  }
+  if ('Image' in el) placeImages(el.Image, drawn, columns, markerRoom(style), math, pictures, charted)
   const tip = notes?.press ? noteTip(blocks, text => void $.ui.toast(text)) : undefined
   const elements = renderBlocks(el, notes ? { ...style, noteKey: instanceKey(notes.id) } : style, blocks, columns, drawMath(el, style, blocks, drawn), copy, tracked(folder($, el, open), open, folds), tip)
   const button = reply === undefined ? null : copy(reply, 'reply', '⧉ copy reply')
@@ -504,7 +605,7 @@ const replyMarker = (el: ReturnType<EngineInterface['ui']['resolve']>, button: R
 
 const THEME_ARGS = [...PRESET_NAMES, 'random']
 
-type Picked = { theme: string; options: PluginOptions; latex: LatexSession }
+type Picked = { theme: string; options: PluginOptions; latex: LatexSession; charts: Charts }
 
 const setTheme = async ($: EngineInterface, picked: Picked, name: string): Promise<string> => {
   const result = await $.config.set({ key: `${$.plugin.name}.theme`, value: name })
@@ -515,6 +616,7 @@ const setTheme = async ($: EngineInterface, picked: Picked, name: string): Promi
   const style = picked.latex.style
   style.theme = resolveStyle({ ...picked.options, theme: picked.theme }).theme
   picked.latex.color = ratexColor(style.theme.diagramText ?? style.theme.codeText ?? '#808080')
+  picked.charts.config = diagramConfig(style)
   $.ui.invalidate('ui.render')
   return `Theme set to random: ${picked.theme} for now.\nkeep it: /merman theme ${picked.theme}`
 }
@@ -716,7 +818,8 @@ export const register: Register = (on, options) => {
   const fit = (viewport?: { isFullscreen?: boolean }): Style => (terminal === 'apple-terminal' && viewport?.isFullscreen ? { ...style, shape: 'inverse' } : style)
   const hinted: Hints = {}
   const latex: LatexSession = { style, color: ratexColor(style.theme.diagramText ?? style.theme.codeText ?? '#808080'), pending: new Set(), wanted: new Set(), batch: [], queue: Promise.resolve() }
-  const picked: Picked = { theme: firstTheme, options, latex }
+  const charts: Charts = { style, config: diagramConfig(style), pending: new Set(), wanted: new Set(), batch: [], queue: Promise.resolve() }
+  const picked: Picked = { theme: firstTheme, options, latex, charts }
   const probes: Probes = {}
   const pathChecks: PathChecks = { asked: new Set(), batch: [], found: new Set() }
   const drawingKey = (surface: RenderSurface, viewport: unknown, reach: object, ...facts: unknown[]) =>
@@ -797,6 +900,7 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     terminal = await probe($, style, probes)
     void latexEngine($, latex)
+    void chartEngine($, charts)
     const started = await next(e)
     await $.command
       .register({ name: 'merman', description: 'Switch the merman theme, pick styles from samples, copy the last reply, or show the demo', argumentHint: '[theme [<name> | random] | setup [<step> [<pick>]] | copy [code] | demo]' })
@@ -908,10 +1012,11 @@ export const register: Register = (on, options) => {
     const reach = await linkReach($, probes, style)
     const math = await mathOfBlocks($, latex, e.surface, blocks)
     const pictures = await picturesOf($, style, probes, e.surface, blocks)
+    const charted = await chartsOfBlocks($, charts, e.surface, blocks, columnsOf(e.viewport) - markerRoom(style))
     const { style: surfaceStyle, found: located } = await withFoundPaths($, pathChecks, forSurface(fit(e.viewport), e.surface, reach), blocks)
     const key = drawingKey(e.surface, e.viewport, reach, located)
-    return drawnOnce(`command:${e.surface}:${e.requestId}`, () => key, text, math.size + pictures.size === 0, () => read($, unfolded), (open, folds) => (
-      <Box flexDirection="column" rowGap={1} {...fullWidth(text)}>{drawMarkdown($, el, surfaceStyle, blocks, columnsOf(e.viewport), math, pictures, undefined, open, { id: e.requestId, press: reach.marks }, folds)}</Box>
+    return drawnOnce(`command:${e.surface}:${e.requestId}`, () => key, text, math.size + pictures.size + charted.size === 0, () => read($, unfolded), (open, folds) => (
+      <Box flexDirection="column" rowGap={1} {...fullWidth(text)}>{drawMarkdown($, el, surfaceStyle, blocks, columnsOf(e.viewport), math, pictures, undefined, open, { id: e.requestId, press: reach.marks }, folds, charted)}</Box>
     ))
   })
 
@@ -941,17 +1046,18 @@ export const register: Register = (on, options) => {
     const reach = await linkReach($, probes, style)
     const math = await mathOfBlocks($, latex, e.surface, blocks)
     const pictures = await picturesOf($, style, probes, e.surface, blocks)
+    const charted = await chartsOfBlocks($, charts, e.surface, blocks, columnsOf(e.viewport) - markerRoom(style))
     const { style: surfaceStyle, found: located } = await withFoundPaths($, pathChecks, forSurface(fit(e.viewport), e.surface, reach), blocks)
     const reply = blocks.length > 1 || hasRtl(e.props.text) ? e.props.text : undefined
     const corner = reply !== undefined && markerRoom(surfaceStyle) > 0
     const key = drawingKey(e.surface, e.viewport, reach, located, e.props.isFirstOfReply, e.props.isSummary)
-    return drawnOnce(`reply:${e.surface}:${e.requestId}`, () => key, e.props.text, math.size + pictures.size === 0, () => read($, unfolded), (open, folds) => (
+    return drawnOnce(`reply:${e.surface}:${e.requestId}`, () => key, e.props.text, math.size + pictures.size + charted.size === 0, () => read($, unfolded), (open, folds) => (
       <Box key="msg" flexDirection="row">
         <Box width={2} flexShrink={0}>
           <Text color={style.theme.accent}>{e.props.isFirstOfReply ? '●' : ' '}</Text>
         </Box>
         <Box flexDirection="column" rowGap={1} flexGrow={1}>
-          {drawMarkdown($, el, narration ? { ...surfaceStyle, narration } : surfaceStyle, blocks, columnsOf(e.viewport), math, pictures, reply, open, { id: e.requestId, press: reach.marks }, folds)}
+          {drawMarkdown($, el, narration ? { ...surfaceStyle, narration } : surfaceStyle, blocks, columnsOf(e.viewport), math, pictures, reply, open, { id: e.requestId, press: reach.marks }, folds, charted)}
           {e.props.isSummary ? <Text dimColor>· summary</Text> : null}
         </Box>
         {corner ? <Box width={MARK} flexShrink={0} /> : null}
