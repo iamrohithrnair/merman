@@ -36,6 +36,8 @@ export type Style = {
   highlightPaths: boolean
   mermaid: boolean
   mermaidAscii: boolean
+  mermaidImages: boolean
+  mmdc: string
   copyButtons: boolean
   copyButtonStyle: 'inline' | 'hover'
   htmlCopy: ClipboardBackend | null
@@ -52,6 +54,7 @@ export type Style = {
   reorder: boolean
   shape: Shape
   latex: boolean
+  ratex: string
   cwd: string
   home: string
 }
@@ -95,6 +98,8 @@ export const resolveStyle = (options: PluginOptions): Style => {
     highlightPaths: options.highlightPaths !== false,
     mermaid: options.mermaid !== false,
     mermaidAscii: options.mermaidAscii === true,
+    mermaidImages: options.mermaidImages === true,
+    mmdc: (typeof options.mmdcPath === 'string' && options.mmdcPath.trim()) || 'mmdc',
     copyButtons: options.copyButtons !== false,
     copyButtonStyle: pick(options.copyButtonStyle, ['inline', 'hover'] as const, 'inline'),
     htmlCopy: null,
@@ -107,6 +112,7 @@ export const resolveStyle = (options: PluginOptions): Style => {
     reorder: rtl !== 'auto' && rtl !== 'off',
     shape: rtl === 'auto' || rtl === 'off' ? 'visual' : TERMINALS[rtl],
     latex: options.latex === true,
+    ratex: (typeof options.ratexPath === 'string' && options.ratexPath.trim()) || 'ratex-render',
     cwd: '',
     home: '',
   }
