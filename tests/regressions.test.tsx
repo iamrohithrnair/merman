@@ -1754,6 +1754,21 @@ test('pie and gantt sources the chart cannot read show a failure note, not a bro
   }
 })
 
+test('a gantt task that runs past the dates JavaScript can hold shows a failure note instead of throwing', () => {
+  for (const source of ['gantt\n  dateFormat YYYY-MM-DD\n  A :a, 2024-01-01, 99999999999w', 'gantt\n  dateFormat YYYY-MM-DD\n  A :a, 2024-01-01, 1e400d']) {
+    expect(() => mermaidText(source, false, 80)).not.toThrow()
+    expect(mermaidText(source, false, 80)).toBeNull()
+  }
+})
+
+test('a flowchart whose edge cannot be routed around its nodes still draws, where the edge search once never ended', () => {
+  const tree = 'flowchart TD\n  R[r]\n  N[n]\n  Q[q]\n  S[s]\n  A[a]\n  N --> R\n  N --> Q\n  Q --> S\n  Q --> A'
+  expect(mermaidText(tree, false, 80)).toContain('q')
+  const path = (name: string) => `"nmarkets/newtron-srm/newtron-srm-impl/src/main/java/newtron/impl/${name}.java"`
+  const wide = `flowchart LR\n  R[${path('rights/RightsMisc')}]\n  N[${path('corporation/EPCorporationAdminCategory')}]\n  Q[${path('ai/McpUserQuery')}]\n  S[${path('ai/db/AIMcpAgentBlock')}]\n  A[${path('ai/IAIToolAccess')}]\n  N --> R\n  N --> Q\n  Q --> S\n  Q --> A`
+  expect(mermaidText(wide, false, 80)).toContain('McpUserQuery')
+})
+
 test('pie and gantt charts shrink to a narrow terminal and use plain glyphs in ascii mode', () => {
   const pie = 'pie\n  "A very long slice label that goes on" : 3\n  "b" : 1'
   const gantt = 'gantt\n  dateFormat HH:mm\n  Deploy : 10:00, 45m\n  Verify : 30m'

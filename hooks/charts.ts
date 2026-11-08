@@ -2,6 +2,7 @@ import type { C4Paint } from './c4layout'
 import { graphemes, width } from './render'
 
 const DAY = 86400000
+const MAX_DATE = 8.64e15
 const STEPS = [1, 5, 15, 30, 60, 120, 360, 720, 1440, 2880, 10080, 20160, 43200, 129600, 525600].map(m => m * 60000)
 const UNIT: Record<string, number> = { ms: 1, s: 1000, m: 60000, h: 3600000, d: DAY, w: 7 * DAY }
 const TAGS = /^(done|active|crit|milestone)$/i
@@ -187,6 +188,7 @@ export const ganttText = (source: string, ascii: boolean, columns: number): stri
   if (!tasks.length) return null
   const min = Math.min(...tasks.map(t => t.start))
   const max = Math.max(...tasks.map(t => t.end))
+  if (!Number.isFinite(min) || !Number.isFinite(max) || Math.abs(min) > MAX_DATE || Math.abs(max) > MAX_DATE) return null
   const span = max - min || DAY
   const sameYear = new Date(min).getUTCFullYear() === new Date(max).getUTCFullYear()
   const labelWidth = Math.max(...rows.map(r => ('name' in r ? width(r.name) + 2 : width(r.section))))

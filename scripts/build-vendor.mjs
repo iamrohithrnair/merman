@@ -10,7 +10,7 @@ const track = result => {
   }
 }
 
-const XYCHART = /beautiful-mermaid\/src\/ascii\/xychart\.ts$/
+const XYCHART = /beautiful-mermaid[\\/]src[\\/]ascii[\\/]xychart\.ts$/
 const SIZE = ['const PLOT_WIDTH = 60', 'const PLOT_HEIGHT = 20']
 const BAR_SCALE = [
   [
@@ -124,7 +124,7 @@ const BAR_SCALE = [
 `,
   ],
 ]
-const XY_PARSER = /beautiful-mermaid\/src\/xychart\/parser\.ts$/
+const XY_PARSER = /beautiful-mermaid[\\/]src[\\/]xychart[\\/]parser\.ts$/
 const SERIES_NAMES = ['bar', 'line'].map(kind => [
   `const ${kind}Match = line.match(/^${kind}\\s+\\[([^\\]]+)\\]/)`,
   `series.push({ type: '${kind}', data: parseNumericArray(${kind}Match[1]!) })`,
@@ -132,7 +132,7 @@ const SERIES_NAMES = ['bar', 'line'].map(kind => [
   `series.push({ type: '${kind}', name: ${kind}Match[1] ?? ${kind}Match[2], data: parseNumericArray(${kind}Match[3]!) })`,
 ])
 const LEGEND_NAMES = [['label: `Bar ${barIdx + 1}`', 'label: s.name || `Bar ${barIdx + 1}`'], ['label: `Line ${lineIdx + 1}`', 'label: s.name || `Line ${lineIdx + 1}`']]
-const CANVAS = /beautiful-mermaid\/src\/ascii\/canvas\.ts$/
+const CANVAS = /beautiful-mermaid[\\/]src[\\/]ascii[\\/]canvas\.ts$/
 const CANVAS_ANCHOR = 'export function isJunctionChar('
 const CLEAR_LABEL_GAPS = `export function clearLabelGaps(canvas: Canvas, label: Canvas): void {
   for (let y = 0; y < (label[0]?.length ?? 0); y++) {
@@ -144,10 +144,22 @@ const CLEAR_LABEL_GAPS = `export function clearLabelGaps(canvas: Canvas, label: 
   }
 }
 `
-const DRAW = /beautiful-mermaid\/src\/ascii\/draw\.ts$/
+const DRAW = /beautiful-mermaid[\\/]src[\\/]ascii[\\/]draw\.ts$/
 const DRAW_ANCHOR = '  graph.canvas = mergeCanvases(graph.canvas, zero, useAscii, ...labelCanvases)'
 const DRAW_IMPORT = 'import { mkCanvas, copyCanvas,'
-const PARSER = /beautiful-mermaid\/src\/parser\.ts$/
+const PATHFINDER = /beautiful-mermaid[\\/]src[\\/]ascii[\\/]pathfinder\.ts$/
+const PATH_START = '  const pq = new MinHeap()\n  pq.push({ coord: from, priority: 0 })\n'
+const PATH_BOUNDS = `  let limitX = Math.max(from.x, to.x) + 2
+  let limitY = Math.max(from.y, to.y) + 2
+  for (const key of grid.keys()) {
+    const [x, y] = key.split(',').map(Number)
+    limitX = Math.max(limitX, x! + 2)
+    limitY = Math.max(limitY, y! + 2)
+  }
+`
+const PATH_STEP = '      // Allow moving to the destination even if it\'s occupied'
+const PATH_LIMIT = '      if (next.x > limitX || next.y > limitY) continue\n'
+const PARSER = /beautiful-mermaid[\\/]src[\\/]parser\.ts$/
 const NODE_ID_START = 'const NODE_PATTERNS'
 const NODE_ID_END = 'const CLASS_SHORTHAND_REGEX'
 const NODE_ID = '[\\w-]+'
@@ -290,6 +302,11 @@ track(await build({
           .replace(DRAW_ANCHOR, `${DRAW_ANCHOR}\n  for (const label of labelCanvases) clearLabelGaps(graph.canvas, label)`)
           .replace(DRAW_IMPORT, DRAW_IMPORT.replace('{ ', '{ clearLabelGaps, '))
         return { contents: patched, loader: 'ts' }
+      })
+      api.onLoad({ filter: PATHFINDER }, args => {
+        const src = readFileSync(args.path, 'utf8')
+        if (!src.includes(PATH_START) || !src.includes(PATH_STEP)) throw new Error('pathfinder.ts no longer searches getPath the same way')
+        return { contents: src.replace(PATH_START, PATH_BOUNDS + PATH_START).replace(PATH_STEP, PATH_LIMIT + PATH_STEP), loader: 'ts' }
       })
       api.onLoad({ filter: PARSER }, args => {
         const src = readFileSync(args.path, 'utf8')
