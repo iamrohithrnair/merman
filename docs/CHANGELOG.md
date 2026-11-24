@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-11-24
+
+### Added
+
+- Prompt timestamps can use a chosen time zone. Turn on **Clock times** in `/config`, then set **Prompt time zone** to a zone such as `Europe/London` or `UTC`. Leave it blank to use the host’s time zone. Based on Jason Peacock’s proposal in [#5](https://github.com/iamrohithrnair/merman/pull/5), implemented in [#13](https://github.com/iamrohithrnair/merman/pull/13).
+
+### Fixed
+
+- PNG copies use the current theme’s background after a random theme switch. Contributed by Jason Peacock in [#4](https://github.com/iamrohithrnair/merman/pull/4).
+- Queued LaTeX formulas keep the theme color they were queued for and can reuse their images after switching back. Based on Jason Peacock’s report and fix in [#3](https://github.com/iamrohithrnair/merman/pull/3), implemented in [#12](https://github.com/iamrohithrnair/merman/pull/12).
+- Hebrew and Arabic draw right to left in tmux when Merman cannot identify the outer terminal.
+- Edit results with missing output fall back to Claude Code’s renderer without an error.
+
 ## [0.2.1] - 2026-10-29
 
 ### Changed
