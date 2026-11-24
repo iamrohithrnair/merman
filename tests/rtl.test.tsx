@@ -351,6 +351,15 @@ test('auto reorders fully in Ghostty, which has no bidi of its own', async ($, o
   await ui.unmount()
 })
 
+test('auto reorders in tmux when the outer terminal is unknown', async ($, on) => {
+  mock.env(on, { TERM_PROGRAM: 'tmux', TERM: 'tmux-256color', TMUX: '/tmp/tmux/default,1,0' })
+  on('session.start', () => ({ cwd: '/tmp' }))
+  await $.session.start({ cwd: '/tmp', surface: 'terminal', isInteractive: true })
+  const ui = await $.ui.mount(mount('שלום עולם'))
+  expect(await ui.find({ type: 'Text', text: /^םלוע םולש$/ })).toBeDefined()
+  await ui.unmount()
+})
+
 test('detection also runs when a prompt is submitted, so a reload without session start still gets it', async ($, on) => {
   mock.env(on, { TERM_PROGRAM: 'WarpTerminal' })
   on('prompt.submit', (_, e) => ({ text: e.text, context: e.context }))
