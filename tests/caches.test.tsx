@@ -315,6 +315,8 @@ test('a diff card is read from what it draws, not the whole file the edit came f
   expect(diffCard({ ...fresh, originalFile: 'was here' })).toMatchObject({ made: undefined })
   expect(diffCard({ type: 'create', filePath: '/repo/w.ts', content: 'a\nb\n', structuredPatch: [], originalFile: null })).toEqual({ write: { kind: 'created', path: '/repo/w.ts', lines: ['a', 'b'] } })
   expect(diffCard('File updated')).toBeUndefined()
+  expect(diffCard(null)).toBeUndefined()
+  expect(diffCard(undefined)).toBeUndefined()
 })
 
 const scrolled = { first: 2, last: 6, of: 12 }

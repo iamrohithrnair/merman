@@ -2186,6 +2186,7 @@ const written = (output: unknown): WholeFile | undefined => {
 export type DiffCard = { write: WholeFile } | { rows: DiffLine[]; made?: WholeFile; path?: string }
 
 export const diffCard = (output: unknown): DiffCard | undefined => {
+  if (output === null || typeof output !== 'object') return undefined
   const write = written(output)
   if (write) return { write }
   const rows = diffLines(output)
