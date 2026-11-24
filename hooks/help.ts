@@ -174,6 +174,8 @@ Click a mark to see its note. Point at a note to light the marks that cite it.
 
 #### Diagrams
 
+With \`mermaidImages\` on and mermaid-cli installed as \`mmdc\`, these draw as images in the theme's colors in kitty and Ghostty.
+
 \`\`\`mermaid
 flowchart LR
     R["<i>Reply</i>"] --> P["<b>Parse</b>"]
