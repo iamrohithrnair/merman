@@ -31,7 +31,7 @@
 - Claude Code prints mermaid as source and tool calls as walls of text. merman draws them: real charts and flowcharts, typeset LaTeX math in kitty and Ghostty, colored tables and code, and, if you opt in, quiet tool rows.
 - 16 palettes plus `mono`, and copy buttons on everything.
 - One command to install, `/plugin` to turn it off. Claude Code's own renderer comes back the moment you do.
-- No network calls. It runs a program only when you click `⧉ html` or `▣ png` (the clipboard helper) or turn on LaTeX (RaTeX's renderer).
+- No network calls. It runs a program only when you click `⧉ html` or `▣ png` (the clipboard helper) or turn on LaTeX (RaTeX's renderer) or mermaid images (mermaid-cli).
 - A full reply renders in about 2 ms; see [Performance](#performance).
 
 ## Install
@@ -126,6 +126,7 @@ Measured with `npm --prefix scripts run bench` (200 runs, Node 24, Apple M4 Pro)
 | [Code](#code) | a language header and copy button, Prism highlighting in two dozen languages, shell lines colored like a prompt |
 | [Diagrams and charts](#diagrams-and-charts) | flowcharts, sequence, state, class, ER and C4 diagrams, bar and line charts, one color per box, participant and bar |
 | [Figures](#figures) | ` ```figure ` text pictures drawn as written in the theme's colors, for timelines, layouts and before and after; glyphs and markup checked before they are drawn |
+| [Diagrams as images](#diagrams-as-images) | ` ```mermaid ` diagrams drawn as images by [mermaid-cli](https://github.com/mermaid-js/mermaid-cli) in the theme's colors in kitty and Ghostty, every diagram type mermaid knows except C4; text art everywhere else |
 | [LaTeX math](#latex-math) | `$$` and ` ```math ` formulas typeset as images in kitty and Ghostty by [RaTeX](https://github.com/erweixin/RaTeX), text everywhere else |
 | [Layout](#layout) | back-to-back tables and diagrams sit side by side and wrap on narrow terminals |
 | [Copy buttons](#copy-buttons) | `⧉ md`, `⧉ art`, `⧉ html` and `▣ png` on tables, `[ ⧉ copy ]` on code, lists and quotes, `/merman copy` without a mouse |
@@ -204,6 +205,18 @@ Bookings  0                   {ok:1}                 {warn:2 twice}
 - `⧉ source` copies the block as Claude wrote it, `⧉ art` the drawn text
 - figures draw whether `mermaid` is on or off; only the [diagram hints](#diagram-hints) note follows `mermaid`
 - Claude learns about figures from the [diagram hints](#diagram-hints) note: prefer a figure over mermaid when position carries meaning (durations racing on a time axis, a screen layout, phases, before and after); when you ask to explain, compare or plan something and pictures would make it easier to grasp, build the reply around them, with the core on the first screen; the prose does not retell the picture; then the roles, the width and the glyphs that draw cleanly; plain flows and charts stay mermaid
+
+### Diagrams as images
+
+With `mermaidImages` set to `true`, ` ```mermaid ` blocks draw as images rendered by [mermaid-cli](https://github.com/mermaid-js/mermaid-cli), mermaid's own renderer, so every diagram type mermaid knows draws, including ones merman has no text art for (mindmap, timeline, git graph, ...). C4 keeps merman's own drawing, since mermaid draws C4 in fixed colors that ignore the theme. Colors come from the theme: box fills, borders and lines from the diagram color, text from the diagram text color, notes and titles from the heading color, pie slices and chart series from the same palette the text art uses, and gantt bars from the diagram color, with active and critical tasks in the palette's second and third colors. Light themes render in mermaid's light mode. The image's background is transparent.
+
+It needs `mmdc` on your `PATH`, which brings Node and a headless Chrome (about 300 MB):
+
+```bash
+npm install -g @mermaid-js/mermaid-cli
+```
+
+Like [LaTeX](#latex-math), it is off until you set it, and then merman renders a test diagram once in kitty and Ghostty, outside tmux, or wherever `CLAUDE_CODE_FORCE_TERMINAL_IMAGES` makes Claude Code draw images, and keeps images on only if that comes back. Each diagram is one `mmdc` run of about a second, one at a time, so a diagram shows as text art first and redraws as an image when its own run finishes. The headless Chrome `mmdc` starts gets no network: mermaid could otherwise fetch an image a diagram links to. A diagram `mmdc` rejects stays text art. Diagrams lay out for the terminal width at about 9 pixels a column, so gantt charts and `xychart-beta` fill it and a wider diagram shrinks to it; resizing renders them again once the width crosses a 20-column step. An image is at most 40 rows tall. Gantt dates read like `Oct 5` unless the diagram sets its own `axisFormat`, since mermaid puts more ticks on a wider axis and its default full dates overlap. The copy buttons stay and copy the mermaid source. With `mermaid` off, nothing runs.
 
 ### LaTeX math
 
@@ -360,8 +373,11 @@ Options sit under `options`, keyed by the plugin's id: `merman@merman`, or `merm
 | `rtl` | `auto`, a terminal (`warp`, `kitty`, `apple-terminal`, `iterm`, `ghostty`, `wezterm`, `vscode`, `alacritty`, `windows-terminal`, `gnome`, `konsole`), `off` | `auto` |
 | `mermaid` | `true`, `false` | `true` |
 | `mermaidAscii` | `true`, `false` | `false` |
+| `mermaidImages` | `true`, `false` | `false` |
+| `mmdcPath` | the `mmdc` to run: a path, or a name on your `PATH` | empty (`mmdc` on your `PATH`) |
 | `pieStyle` | `round` (a circle with a legend), `bars` (one bar per slice) | `round` |
 | `latex` | `true`, `false` | `false` |
+| `ratexPath` | the `ratex-render` to run: a path, or a name on your `PATH` | empty (`ratex-render` on your `PATH`) |
 | `<token>Color` | any color, see below | theme |
 | `diffStyle` | `card` (rounded box, tinted lines), `full` (no box, lines tinted across the width), `marks` (no tint, colored `+` and `−` marks), `bar` (no tint, a colored `▌` before each changed line) | `card` |
 A color is hex (`#a6e3a1`, `#fc0`), `rgb(166,227,161)`, `ansi256(114)` or a name (`green`, `cyanBright`). Values that don't parse are ignored. Every token has a `<token>Color` option and a row in `/config`:
@@ -415,7 +431,7 @@ To change the code, read [AGENTS.md](AGENTS.md) instead.
 - **What it is:** a Claude Code mod (function hooks in TypeScript) that redraws assistant replies, slash-command output, tool rows (opt-in with `toolRows`), the turn footer and user prompts. It changes how things look, and with `diagramHints` on (the default) it also asks Claude to build a reply around pictures when they make it easier to grasp, with the core on the first screen as a picture or a sentence. The one thing it sends the model is the optional diagram hint below.
 - **Install:** `claude plugin marketplace add iamrohithrnair/merman && claude plugin install merman@merman`, then `/reload-plugins`. Needs Claude Code 2.1.311+. For development, symlink a checkout to `~/.claude/skills/merman` (`$CLAUDE_CONFIG_DIR/skills/merman` when that is set) instead; it loads in place as `merman@skills-dir`.
 - **Configure:** `/merman theme <name>` and `/merman setup` set options at runtime. Every option is a key under `pluginConfigs["merman@merman"].options` (`merman@skills-dir` for a linked checkout) in `~/.claude/settings.json` (or a row in `/config`), then `/reload`. Options and defaults are in the [Configure](#configure) table; the machine-readable source is `userConfig` in [.claude-plugin/plugin.json](.claude-plugin/plugin.json). Color values that don't parse are ignored.
-- **Side effects:** no network. Programs it runs: the `⧉ html` and `▣ png` clipboard helper (`/usr/bin/osascript` on macOS, `powershell.exe` on Windows, `copyq` on Linux for `⧉ html` only, 5 second timeout, 15 on Windows, only on a click), and `ratex-render` while `latex` is on. With `diagramHints` on, it adds about 355 tokens of model-only context (about 410 while `latex` is on) once per conversation, to the first prompt you type or another plugin sends, and again after a compaction drops it, as broken down under [Diagram hints](#diagram-hints).
+- **Side effects:** no network. Programs it runs: the `⧉ html` and `▣ png` clipboard helper (`/usr/bin/osascript` on macOS, `powershell.exe` on Windows, `copyq` on Linux for `⧉ html` only, 5 second timeout, 15 on Windows, only on a click), `ratex-render` while `latex` is on, and `mmdc` (mermaid-cli, which starts a headless Chrome with no network) while `mermaidImages` is on: once for a test diagram, then once per ```` ```mermaid ```` diagram, one at a time, 30 second timeout, with its config and output in one temp folder. With `diagramHints` on, it adds about 355 tokens of model-only context (about 410 while `latex` is on) once per conversation, to the first prompt you type or another plugin sends, and again after a compaction drops it, as broken down under [Diagram hints](#diagram-hints).
 - **Turning it off:** `"enabled": false`, or disable the plugin in `/plugin`.
 - **For other mods:** `$.merman.markdown({ surface, text, columns })`, typed in [types/index.d.ts](types/index.d.ts). See [Other mods](#other-mods).
 

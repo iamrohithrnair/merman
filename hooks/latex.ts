@@ -39,6 +39,14 @@ export const ratexColor = (color: string): string => {
   return `#${ANSI16[base === 'gray' || base === 'grey' ? 8 : ANSI_NAMES.indexOf(base) + 8]}`
 }
 
+export const ansiNameHex = (color: string): string => {
+  const name = /^(black|red|green|yellow|blue|magenta|cyan|white|gray|grey)(bright)?$/i.exec(color.trim())
+  if (!name) return color
+  const base = name[1]!.toLowerCase()
+  const index = base === 'gray' || base === 'grey' ? 8 : ANSI_NAMES.indexOf(base) + (name[2] ? 8 : 0)
+  return `#${ANSI16[index]}`
+}
+
 const MAX_FORMULAS = 50
 export const MAX_PICTURE_BYTES = 8 * 1024 * 1024
 
