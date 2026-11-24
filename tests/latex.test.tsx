@@ -650,6 +650,48 @@ test('after /merman random, new formulas take the new theme color', { options: {
   await second.unmount()
 })
 
+test('a waiting batch uses its queued color and reuses its images after a reroll back', { options: { theme: 'random' } }, async ($, on) => {
+  mock.env(on, KITTY)
+  on('config.set', (_, e) => ({ value: e.value }))
+  const clock = mock.clock(on)
+  let gate: Promise<void> = Promise.resolve()
+  const runs = ratex(on, ok, PNG_160x80, { then: (done: () => void) => gate.then(done) } as Promise<void>)
+  const reroll = async () => {
+    const { text } = await $.command.run({ command: 'merman', args: 'theme random', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 120 } })
+    const preset = /^Theme set to random: (\S+) for now/.exec(text ?? '')?.[1] ?? ''
+    const theme = PRESETS[preset as keyof typeof PRESETS]
+    return ratexColor(theme?.diagramText ?? theme?.codeText ?? '#808080')
+  }
+  const source = 'Waiting:\n\n$$\nx^4\n$$\n\n$$\nx^5\n$$'
+  const colorOf = (run: Run) => run.argv[run.argv.indexOf('--color') + 1]
+  const warm = await $.ui.mount(reply(REPLY))
+  await clock.settle()
+  await warm.unmount()
+  const first = await reroll()
+  let release = () => {}
+  gate = new Promise<void>(resolve => (release = resolve))
+  const active = await $.ui.mount(reply('Working:\n\n$$\nx^3\n$$'))
+  await clock.settle()
+  const waiting = await $.ui.mount(reply(source))
+  await clock.settle()
+  await active.unmount()
+  await waiting.unmount()
+  let current = first
+  for (let i = 0; current === first && i < 50; i++) current = await reroll()
+  expect(current).not.toBe(first)
+  release()
+  await clock.settle()
+  const waitingRuns = () => runs.filter(run => run.formulas.includes('x^4') || run.formulas.includes('x^5'))
+  expect(waitingRuns().map(run => [colorOf(run), run.formulas])).toEqual([[first, ['x^4', 'x^5']]])
+  for (let i = 0; current !== first && i < 400; i++) current = await reroll()
+  expect(current).toBe(first)
+  const again = await $.ui.mount(reply(source))
+  await clock.settle()
+  expect((await again.findAll({ type: 'Image' })).map(node => node.props.alt)).toEqual(['x^4', 'x^5'])
+  expect(waitingRuns()).toHaveLength(1)
+  await again.unmount()
+})
+
 test('a theme switch while a formula typesets redraws it in the new color', { options: { theme: 'random' } }, async ($, on) => {
   mock.env(on, KITTY)
   on('config.set', (_, e) => ({ value: e.value }))
