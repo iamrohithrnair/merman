@@ -363,6 +363,7 @@ test('the help screen shows every element merman draws', async () => {
   expect(showcaseText([])).toContain('src/app.ts:42, and Windows paths like C:\\work\\plan.md')
   expect(showcaseText([])).toContain('<i>Reply</i>')
   expect(showcaseText([])).toContain('CopyQ')
+  expect(showcaseText([])).toContain('`mermaidImages`')
   expect(showcaseText([])).toContain('plain text')
   expect(showcaseText([])).toContain('line "east" [')
   expect(showcaseText([])).toContain('System_Boundary(cc, "Claude Code") {')
