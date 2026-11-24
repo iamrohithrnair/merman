@@ -513,7 +513,10 @@ const setTheme = async ($: EngineInterface, picked: Picked, name: string): Promi
   const others = RANDOM_THEMES.filter(t => t !== picked.theme)
   picked.theme = others[Math.floor(Math.random() * others.length)]!
   const style = picked.latex.style
-  style.theme = resolveStyle({ ...picked.options, theme: picked.theme }).theme
+  const next = resolveStyle({ ...picked.options, theme: picked.theme })
+  style.theme = next.theme
+  if (next.background) style.background = next.background
+  else delete style.background
   picked.latex.color = ratexColor(style.theme.diagramText ?? style.theme.codeText ?? '#808080')
   $.ui.invalidate('ui.render')
   return `Theme set to random: ${picked.theme} for now.\nkeep it: /merman theme ${picked.theme}`
