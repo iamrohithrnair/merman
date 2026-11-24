@@ -1,0 +1,11 @@
+{
+  "name": "merman",
+  "version": "0.3.0",
+  "description": "Mermaid diagrams drawn as box-drawing text in Devin replies.",
+  "author": { "name": "iamrohithrnair" },
+  "homepage": "https://github.com/iamrohithrnair/merman",
+  "repository": "https://github.com/iamrohithrnair/merman",
+  "license": "MIT",
+  "keywords": ["mermaid", "diagrams", "markdown"],
+  "platforms": ["local"]
+}

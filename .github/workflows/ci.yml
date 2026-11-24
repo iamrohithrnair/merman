@@ -67,6 +67,8 @@ jobs:
         working-directory: scripts
       - name: Bundle matches its source and holds only MIT packages
         run: npm --prefix scripts run build:vendor && git diff --exit-code hooks/vendor
+      - name: Devin renderer matches its source
+        run: npm --prefix scripts run build:devin && git diff --exit-code devin
       - name: Render snapshots match
         run: npm --prefix scripts run snapshot
       - name: Node counts stay within baseline (timings reported, not gated)
