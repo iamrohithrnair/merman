@@ -1,7 +1,7 @@
-import { readFileSync, statSync } from 'node:fs'
+import { readFileSync, statSync, writeFileSync } from 'node:fs'
 import { parse } from '../hooks/markdown.ts'
-import { drawDiagrams } from '../hooks/mermaid.tsx'
-import { renderBlocks } from '../hooks/render.tsx'
+import { drawDiagrams, mermaidText } from '../hooks/mermaid.tsx'
+import { renderBlocks, width } from '../hooks/render.tsx'
 import { resolveStyle } from '../hooks/theme.ts'
 
 globalThis.h = (type, props, ...children) => ({ type, props, children })
@@ -53,20 +53,33 @@ const html = node => {
   return '<span class="' + flags + '"' + style + '>' + body + '</span>'
 }
 
-const [input, theme = 'catppuccin-mocha'] = process.argv.slice(2)
+const diagramOnly = process.argv[2] === '--diagram'
+const [input, theme = 'catppuccin-mocha'] = process.argv.slice(diagramOnly ? 3 : 2)
 if (!input) {
-  process.stderr.write('Usage: node render.mjs <input.md> [theme]\n')
+  process.stderr.write('Usage: node render.mjs <input.md> [theme] or node render.mjs --diagram <input.mmd>\n')
   process.exit(2)
 }
 if (!statSync(input, { throwIfNoEntry: false })?.isFile()) {
-  process.stderr.write('Input must be a Markdown file.\n')
+  process.stderr.write('Input must be a file.\n')
   process.exit(2)
+}
+
+const source = readFileSync(input, 'utf8')
+if (diagramOnly) {
+  const columns = Math.max(20, Math.min(255, Math.floor(Number(process.env.COLUMNS)) || 76))
+  const art = mermaidText(source, false, columns)
+  if (!art || /[\x00-\x09\x0b-\x1f\x7f-\x9f]/.test(art) || art.split('\n').some(line => width(line) > columns)) {
+    process.stderr.write('Merman could not draw this diagram as terminal text.\n')
+    process.exit(1)
+  }
+  writeFileSync(1, art + '\n')
+  process.exit(0)
 }
 
 const columns = 100
 const style = resolveStyle({ theme })
 style.httpLinks = true
-const blocks = parse(readFileSync(input, 'utf8'), { numbers: true, paths: true })
+const blocks = parse(source, { numbers: true, paths: true })
 const diagrams = drawDiagrams(elements, style, blocks, columns)
 const body = html(renderBlocks(elements, style, blocks, columns, diagrams))
 process.stdout.write('<!doctype html>\n<html lang="en"><meta charset="utf-8">' +
