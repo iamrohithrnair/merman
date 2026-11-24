@@ -1,0 +1,6 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "merman",
+  "version": "0.1.0",
+  "description": "Render Markdown replies as themed Merman previews on demand."
+}

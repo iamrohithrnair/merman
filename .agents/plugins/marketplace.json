@@ -1,0 +1,12 @@
+{
+  "name": "merman",
+  "interface": { "displayName": "Merman" },
+  "plugins": [
+    {
+      "name": "merman",
+      "source": { "source": "local", "path": "./integrations/codex" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Productivity"
+    }
+  ]
+}

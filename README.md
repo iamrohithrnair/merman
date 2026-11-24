@@ -87,6 +87,19 @@ rm "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/merman"
 
 For LaTeX math, install RaTeX's renderer and set `latex` to `true`; see [LaTeX math](#latex-math). Until then formulas draw as text.
 
+### Codex
+
+The Codex companion renders a reply or Markdown file as a standalone HTML preview using Merman's themes, syntax highlighting, tables, and text diagrams. Open the preview link to see the result. Live transcript rendering uses Claude Code's mod API, which is specific to Claude Code.
+
+From a Merman checkout, add the marketplace and install the companion:
+
+```bash
+codex plugin marketplace add "$PWD"
+codex plugin add merman@merman
+```
+
+Start a new Codex session and pick **merman:merman** from the `$` menu. Ask it to preview a reply or Markdown file, optionally with a theme such as `nord` or `github-light`. The preview needs Node.js 22 or newer and renders locally. The same marketplace can be added using `codex plugin marketplace add iamrohithrnair/merman` once the companion is available in the GitHub repository.
+
 ## Performance
 
 merman draws replies in place of Claude Code's own markdown renderer, so its cost is the time to turn a reply into a tree, plus a one-time note to the model.
@@ -432,6 +445,8 @@ claude --plugin-dir ./merman
 ```
 
 Edits hot-reload in that session. Before a PR run `claude plugin validate .` and `claude plugin test .`, and print [docs/demo.md](docs/demo.md) to check the look. `npm --prefix scripts run bench` times a full render of the demo reply, so speed claims can be checked on any machine. The full rules and verify loop are in [AGENTS.md](AGENTS.md).
+
+After changing code used by the Codex preview, run `npm --prefix scripts run build:codex` and `node scripts/check-codex-preview.mjs`. The bundled renderer lets users preview replies without an npm install.
 
 ### Other mods
 
