@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-11-24
+
+### Added
+
+- Install Merman in Codex from the same GitHub repository. The `merman:merman` skill creates an on-demand HTML preview of a reply or Markdown file with themes, syntax highlighting, tables, and text diagrams. The preview runs locally with Node.js 22 or newer. [#14](https://github.com/iamrohithrnair/merman/pull/14)
+
 ## [0.3.0] - 2026-11-24
 
 ### Added

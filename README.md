@@ -91,14 +91,14 @@ For LaTeX math, install RaTeX's renderer and set `latex` to `true`; see [LaTeX m
 
 The Codex companion renders a reply or Markdown file as a standalone HTML preview using Merman's themes, syntax highlighting, tables, and text diagrams. Open the preview link to see the result. Live transcript rendering uses Claude Code's mod API, which is specific to Claude Code.
 
-From a Merman checkout, add the marketplace and install the companion:
+Add the Merman marketplace and install the Codex companion:
 
 ```bash
-codex plugin marketplace add "$PWD"
+codex plugin marketplace add iamrohithrnair/merman
 codex plugin add merman@merman
 ```
 
-Start a new Codex session and pick **merman:merman** from the `$` menu. Ask it to preview a reply or Markdown file, optionally with a theme such as `nord` or `github-light`. The preview needs Node.js 22 or newer and renders locally. The same marketplace can be added using `codex plugin marketplace add iamrohithrnair/merman` once the companion is available in the GitHub repository.
+Start a new Codex session and pick **merman:merman** from the `$` menu. Ask it to preview a reply or Markdown file, optionally with a theme such as `nord` or `github-light`. The preview needs Node.js 22 or newer and renders locally. For a local checkout, use `codex plugin marketplace add "$PWD"` instead.
 
 ## Performance
 
