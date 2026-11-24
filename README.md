@@ -314,9 +314,11 @@ What you type, at the prompt or through Remote Control, draws in the theme's col
 | `24h` | a prompt bubble that starts with the time it was sent |
 | `12h` | a prompt bubble that starts with 5:45 PM |
 
+If Claude Code runs on a remote host, set **Prompt time zone** in `/config` to a zone such as `Europe/London`, `America/New_York`, or `UTC`. The setting follows daylight saving time and uses the same zone when deciding whether to show the date. A blank or unrecognized zone uses the host's time zone. This setting applies to prompt times. Claude Code's own turn footer uses the host's clock.
+
 ### Right to left
 
-Hebrew and Arabic blocks are right aligned, with bullets, numbers and quote bars on the right and table columns mirrored. Code, numbers, paths and links stay left to right inside them. Terminals treat right-to-left letters differently, so merman detects yours and sends the letters the way it needs them. `/merman demo-rtl` shows every element, and the `rtl` option forces a terminal's handling or turns it off.
+Hebrew and Arabic blocks are right aligned, with bullets, numbers and quote bars on the right and table columns mirrored. Code, numbers, paths and links stay left to right inside them. Terminals treat right-to-left letters differently, so merman detects yours and sends the letters the way it needs them. In tmux, it reorders text directly if it cannot identify the outer terminal. `/merman demo-rtl` shows every element, and the `rtl` option forces a terminal's handling or turns it off.
 
 ## Configure
 
@@ -348,6 +350,7 @@ Options sit under `options`, keyed by the plugin's id: `merman@merman`, or `merm
 | `taskStyle` | `checks` (`[ ]` `[✓]`, done struck through), `ticks` (`○` `✓`), `box` (`□` `✓`), `progress` (ticks with a done-count bar) | `checks` |
 | `promptStyle` | `bubble`, `wide`, `bar`, `chevron`, `off` | `bubble` |
 | `clock` | `off`, `24h`, `12h` | `off` |
+| `clockTimeZone` | a zone such as `Europe/London` or `UTC` | empty (host time zone) |
 | `headingStyle` | `banner`, `bold`, `underline`, `uppercase` | `banner` |
 | `highlightNumbers` | `true`, `false` | `true` |
 | `highlightPaths` | `true`, `false` | `true` |

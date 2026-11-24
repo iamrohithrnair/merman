@@ -3,7 +3,7 @@ import { expect, mock } from 'claude-code/testing'
 import { test } from './tool-rows'
 import type { TestBody } from 'claude-code/testing'
 
-import { clockText, sentAt } from '../hooks/clock'
+import { clockText, clockZone, sentAt } from '../hooks/clock'
 import { FIGURE_HINT } from '../hooks/figure'
 import { parse } from '../hooks/markdown'
 import { PRESET_BACKGROUNDS, PRESET_NAMES, PRESETS } from '../hooks/presets'
@@ -422,6 +422,16 @@ test('clock times read as 24h or 12h, with the date when not today', () => {
   expect(clockText(local(10, 14, 32, 5), now, '12h')).toBe('2:32 PM')
   expect(clockText(local(10, 0, 5), now, '12h')).toBe('12:05 AM')
   expect(clockText(local(9, 23, 5), now, '24h')).toBe('Oct 9 23:05')
+})
+
+test('a prompt time zone handles daylight saving, midnight, and dates in that zone', () => {
+  const zone = clockZone(' America/Los_Angeles ')
+  const summer = Date.UTC(2026, 6, 2, 7, 5)
+  const winter = Date.UTC(2026, 11, 2, 7, 5)
+  expect(clockText(summer, summer, '24h', zone)).toBe('00:05')
+  expect(clockText(winter, winter + 3_600_000, '12h', zone)).toBe('Dec 1 11:05 PM')
+  expect(clockZone('')).toBeUndefined()
+  expect(clockZone('Europe/Atlantis')).toBeUndefined()
 })
 
 test('a row takes the newest matching time recorded before it was first drawn', () => {
@@ -950,6 +960,15 @@ test('clock puts the send time before your prompt', { options: { clock: '24h' } 
   const unsent = await $.ui.mount(prompt('typed before this session'))
   expect(await unsent.find({ type: 'Text', text: /^\d\d:\d\d $/ })).toBeUndefined()
   await unsent.unmount()
+})
+
+test('the prompt row uses the selected time zone', { options: { clock: '24h', clockTimeZone: 'Asia/Kathmandu' } }, async ($, on) => {
+  mock.clock(on, { now: Date.UTC(2026, 10, 5, 8, 30) })
+  on('prompt.submit', (_, e) => ({ text: e.text, context: e.context }))
+  await $.prompt.submit({ text: 'check the local time', wait: false, origin: { kind: 'composer' } })
+  const ui = await $.ui.mount({ ...prompt('check the local time', 'composer', 'terminal'), requestId: 'row-tz' })
+  expect(await ui.find({ type: 'Text', text: /^14:15 $/ })).toBeDefined()
+  await ui.unmount()
 })
 
 test('an old prompt row that redraws after a resume never takes a later send time', { options: { clock: '24h' } }, async ($, on) => {

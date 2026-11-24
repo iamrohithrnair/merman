@@ -7,10 +7,36 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 
 const two = (n: number) => String(n).padStart(2, '0')
 
-export const clockText = (at: number, now: number, clock: Clock): string => {
+const timeText = (h: number, m: number, clock: Clock): string =>
+  clock === '12h' ? `${h % 12 || 12}:${two(m)} ${h < 12 ? 'AM' : 'PM'}` : `${two(h)}:${two(m)}`
+
+export const clockZone = (value: unknown): Intl.DateTimeFormat | undefined => {
+  const timeZone = typeof value === 'string' ? value.trim() : ''
+  if (!timeZone) return undefined
+  try {
+    return new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' })
+  } catch {
+    return undefined
+  }
+}
+
+const zonedParts = (zone: Intl.DateTimeFormat, at: number) => {
+  const parts = { year: 0, month: 0, day: 0, hour: 0, minute: 0 }
+  for (const { type, value } of zone.formatToParts(at)) {
+    if (type in parts) parts[type as keyof typeof parts] = Number(value)
+  }
+  return parts
+}
+
+export const clockText = (at: number, now: number, clock: Clock, zone?: Intl.DateTimeFormat): string => {
+  if (zone) {
+    const d = zonedParts(zone, at)
+    const today = zonedParts(zone, now)
+    const time = timeText(d.hour, d.minute, clock)
+    return d.year === today.year && d.month === today.month && d.day === today.day ? time : `${MONTHS[d.month - 1]} ${d.day} ${time}`
+  }
   const d = new Date(at)
-  const h = d.getHours()
-  const time = clock === '12h' ? `${h % 12 === 0 ? 12 : h % 12}:${two(d.getMinutes())} ${h < 12 ? 'AM' : 'PM'}` : `${two(h)}:${two(d.getMinutes())}`
+  const time = timeText(d.getHours(), d.getMinutes(), clock)
   const today = new Date(now)
   const isToday = d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate()
   return isToday ? time : `${MONTHS[d.getMonth()]} ${d.getDate()} ${time}`

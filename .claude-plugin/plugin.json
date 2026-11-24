@@ -89,6 +89,12 @@
       "default": "off",
       "options": ["off", "24h", "12h"]
     },
+    "clockTimeZone": {
+      "type": "string",
+      "title": "Prompt time zone",
+      "description": "With Clock times on, show prompt times in a zone like Europe/London, America/New_York, or UTC. Leave blank to use this computer’s time zone.",
+      "default": ""
+    },
     "toolStyle": {
       "type": "string",
       "title": "Tool row style",

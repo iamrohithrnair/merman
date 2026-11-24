@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, PluginOptions, PromptOrigin, Register, RenderElement, RenderInput, RenderSurface, RenderViewport, ToolGroupCall } from 'claude-code'
 
-import { clockText, promptKey, sentAt, withRecord } from './clock'
+import { clockText, clockZone, promptKey, sentAt, withRecord } from './clock'
 import type { Formula } from './latex'
 import { LATEX_DPR, LATEX_FONT_PX, MAX_IMAGE_BYTES, MAX_PICTURE_BYTES, fitImage, fitsImage, formulaBytes, imageFile, imageOf, keepFormulas, mathOf, padFor, pickFormula, pngSize, ratexColor, renderedOf } from './latex'
 import type { Block } from './markdown'
@@ -70,7 +70,7 @@ const applyRtl = async ($: EngineInterface, style: Style): Promise<Terminal | nu
   if (style.rtl === 'off') return null
   if (style.rtl !== 'auto') return style.rtl
   const terminal = await detectTerminal($)
-  style.reorder = terminal !== null
+  style.reorder = terminal !== null || Boolean(await $.env.get('TMUX'))
   if (terminal) style.shape = TERMINALS[terminal]
   return terminal
 }
@@ -707,6 +707,7 @@ export const register: Register = (on, options) => {
   if (options.enabled === false) return
   const firstTheme = pickTheme(options.theme)
   const style = resolveStyle({ ...options, theme: firstTheme })
+  const promptZone = style.clock === 'off' ? undefined : clockZone(options.clockTimeZone)
   const highlight = { numbers: style.highlightNumbers, paths: style.highlightPaths }
   const parsed = new Map<string, Block[]>()
   const drafts = new Map<string, Block[]>()
@@ -923,7 +924,7 @@ export const register: Register = (on, options) => {
     const own = kind === 'composer' || kind === 'bridge' || (kind === 'unclassified' && !e.props.from && !e.props.task)
     if (!own) return next(e)
     const at = style.clock === 'off' ? undefined : sentAt(await read($, sent), e.props.text, await firstDrawn($, e.requestId))
-    const time = at === undefined ? undefined : clockText(at, await $.clock.now(), style.clock)
+    const time = at === undefined ? undefined : clockText(at, await $.clock.now(), style.clock, promptZone)
     if (style.promptStyle === 'off') return time === undefined ? next(e) : next({ ...e, props: { ...e.props, text: `[${time}] ${e.props.text}` } })
     const el = $.ui.resolve(e)
     const reach = await linkReach($, probes, style)
