@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] - 2026-11-24
+
+### Added
+
+- Install Merman in Devin with `devin plugins install iamrohithrnair/merman#devin`. Devin then draws every mermaid diagram in a reply (flowchart, sequence, state, class, ER, pie, gantt, xychart, C4) as box-drawing text with Merman's engine instead of showing the raw source, and `/merman:mermaid` draws one on request. Devin strips colors from replies, so the drawing is plain text. It runs locally with Node.js 22 or newer. [#15](https://github.com/iamrohithrnair/merman/pull/15)
+
 ## [0.4.0] - 2026-11-24
 
 ### Added
