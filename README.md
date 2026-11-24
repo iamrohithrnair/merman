@@ -100,6 +100,16 @@ codex plugin add merman@merman
 
 Start a new Codex session and pick **merman:merman** from the `$` menu. Ask it to preview a reply or Markdown file, optionally with a theme such as `nord` or `github-light`. The preview needs Node.js 22 or newer and renders locally. For a local checkout, use `codex plugin marketplace add "$PWD"` instead.
 
+### Devin
+
+Devin has no hook for drawing replies, so the Devin plugin covers only mermaid. It ships a skill and a rule that have Devin draw each mermaid diagram as box-drawing text with merman's engine before it goes into a reply. Colors and the rest of the styling are Claude Code only. Devin strips colors from replies and draws its own tables, headings and code. It needs Node.js 22 or newer.
+
+```bash
+devin plugins install iamrohithrnair/merman#devin
+```
+
+Start a new session and ask for a diagram, or run `/merman:mermaid`. Update with `devin plugins update merman` and remove with `devin plugins remove merman`. To try a checkout, run `devin plugins install --local ./devin`.
+
 ## Performance
 
 merman draws replies in place of Claude Code's own markdown renderer, so its cost is the time to turn a reply into a tree, plus a one-time note to the model.

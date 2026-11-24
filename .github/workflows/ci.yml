@@ -69,6 +69,8 @@ jobs:
         run: npm --prefix scripts run build:vendor && git diff --exit-code hooks/vendor
       - name: Codex preview bundle matches its source and renders safely
         run: npm --prefix scripts run build:codex && git diff --exit-code integrations/codex/skills/merman/render.mjs && node scripts/check-codex-preview.mjs
+      - name: Devin renderer matches its source
+        run: npm --prefix scripts run build:devin && git diff --exit-code devin
       - name: Render snapshots match
         run: npm --prefix scripts run snapshot
       - name: Node counts stay within baseline (timings reported, not gated)
