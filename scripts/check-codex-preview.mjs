@@ -34,7 +34,21 @@ try {
   assert.match(result.stdout, /href="https:\/\/example\.com"/)
   assert.match(result.stdout, /&lt;/)
   assert.doesNotMatch(result.stdout, /<script\b/i)
-  console.log('Codex preview renders tables, Mermaid diagrams, and safe HTML')
+
+  const diagram = join(temp, 'chart.mmd')
+  writeFileSync(diagram, 'pie showData\n  "Open" : 3\n  "Done" : 2\n')
+  const art = spawnSync(process.execPath, [renderer, '--diagram', diagram], { encoding: 'utf8' })
+  assert.equal(art.status, 0, art.stderr)
+  assert.match(art.stdout, /Open.*3/)
+  assert.match(art.stdout, /Done.*2/)
+  assert.doesNotMatch(art.stdout, /<!doctype|[\x00-\x09\x0b-\x1f\x7f-\x9f]/i)
+
+  writeFileSync(diagram, 'mindmap\n  root((Unsupported))')
+  const rejected = spawnSync(process.execPath, [renderer, '--diagram', diagram], { encoding: 'utf8' })
+  assert.equal(rejected.status, 1)
+  assert.equal(rejected.stdout, '')
+  assert.match(rejected.stderr, /could not draw/)
+  console.log('Codex renderer supports terminal diagram fallback and safe HTML export')
 } finally {
   rmSync(temp, { recursive: true, force: true })
 }

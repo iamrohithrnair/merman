@@ -1,10 +1,10 @@
 ---
 name: merman
-description: Render a Codex reply or Markdown file as a themed Merman HTML preview when the user explicitly asks for it.
+description: Draw Mermaid diagrams inline in Codex replies when the user asks for Merman formatting or a terminal diagram.
 ---
 
-Render a preview when the user invokes this skill or explicitly requests Merman formatting. Use the requested Markdown file as input. If the user wants a preview of a reply, write that reply's Markdown to a temporary file first. Preserve its wording and fences.
+Put diagrams directly in the final reply. For flowcharts, sequence, state, class, and ER diagrams, use a closed `mermaid` fence at the top level of the reply. Preserve diagram labels and any surrounding prose when rendering an existing reply or file. Codex draws supported fences in the active terminal theme. Avoid wrapping a Mermaid fence inside another code fence.
 
-Run `node <skill-directory>/render.mjs <input.md> [theme] > <output.html>`, using the path beside this SKILL.md. Use Node.js 22 or newer. Omit the theme for Catppuccin Mocha. Save the HTML where the user requested or use an available writable temporary directory. Do not overwrite an existing file without permission.
+For a diagram the native renderer cannot draw, such as a C4 diagram, pie, Gantt, or XY chart, save only the Mermaid source to a temporary file and run `node <skill-directory>/render.mjs --diagram <input.mmd>`. Put the Unicode output in a top-level `text` fence and keep its whitespace. If Merman cannot draw it, show its Mermaid source and say why.
 
-Return a link to the generated HTML preview.
+Only export HTML if the user explicitly asks for it. Run `node <skill-directory>/render.mjs <input.md> [theme] > <output.html>` and link the output. Omit the theme for Catppuccin Mocha. Save to a writable path and ask before overwriting an existing file. The bundled renderer requires Node.js 22 or newer.

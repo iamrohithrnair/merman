@@ -89,7 +89,7 @@ For LaTeX math, install RaTeX's renderer and set `latex` to `true`; see [LaTeX m
 
 ### Codex
 
-The Codex companion renders a reply or Markdown file as a standalone HTML preview using Merman's themes, syntax highlighting, tables, and text diagrams. Open the preview link to see the result. Live transcript rendering uses Claude Code's mod API, which is specific to Claude Code.
+The Codex companion puts Mermaid diagrams in the reply. Codex CLI draws supported diagrams inline using the active terminal theme. For diagrams such as C4, pie, Gantt, and XY charts, Merman supplies Unicode box art in the reply. You can still ask for an HTML export explicitly.
 
 Add the Merman marketplace and install the Codex companion:
 
@@ -98,7 +98,7 @@ codex plugin marketplace add iamrohithrnair/merman
 codex plugin add merman@merman
 ```
 
-Start a new Codex session and pick **merman:merman** from the `$` menu. Ask it to preview a reply or Markdown file, optionally with a theme such as `nord` or `github-light`. The preview needs Node.js 22 or newer and renders locally. For a local checkout, use `codex plugin marketplace add "$PWD"` instead.
+Start a new Codex session, pick **merman:merman** from the `$` menu, and ask it to draw a diagram inline. Choose the native diagram colors with Codex's `/theme` picker. If supported Mermaid fences appear as source, check that `tui.rendering.mermaid` is enabled in Codex's configuration. The Unicode fallback and optional HTML export need Node.js 22 or newer. For a local checkout, use `codex plugin marketplace add "$PWD"` instead.
 
 ### Devin
 
@@ -456,7 +456,7 @@ claude --plugin-dir ./merman
 
 Edits hot-reload in that session. Before a PR run `claude plugin validate .` and `claude plugin test .`, and print [docs/demo.md](docs/demo.md) to check the look. `npm --prefix scripts run bench` times a full render of the demo reply, so speed claims can be checked on any machine. The full rules and verify loop are in [AGENTS.md](AGENTS.md).
 
-After changing code used by the Codex preview, run `npm --prefix scripts run build:codex` and `node scripts/check-codex-preview.mjs`. The bundled renderer lets users preview replies without an npm install.
+After changing code used by the Codex renderer, run `npm --prefix scripts run build:codex` and `node scripts/check-codex-preview.mjs`. The bundled renderer lets users run the fallback without an npm install.
 
 ### Other mods
 
